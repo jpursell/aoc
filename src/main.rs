@@ -2,7 +2,9 @@ use clap::Parser;
 use std::collections::HashMap;
 use std::process;
 // Import your library functions
-use aoc::{AocSolution, solutions::year_2024};
+use aoc::{
+    AocSolution, get_latest_day, run_all_solutions, run_single_solution, solutions::year_2024,
+};
 // Assuming your crate name is 'my-aoc-project'
 
 /// Advent of Code Runner
@@ -41,7 +43,7 @@ fn main() {
                 run_all_solutions(target_year, solutions);
             } else {
                 // Logic for `cargo run` or `cargo run --year 2024 -d 1`
-                let target_day = args.day.unwrap_or(get_latest_day(target_year));
+                let target_day = args.day.unwrap_or(get_latest_day(solutions));
                 run_single_solution(target_year, target_day, solutions);
             }
         }
@@ -49,42 +51,5 @@ fn main() {
             eprintln!("❌ No solutions found for year {target_year}.");
             process::exit(1);
         }
-    }
-}
-
-// --- Helper Functions ---
-
-/// Gets the latest solved day for the current year.
-fn get_latest_day(year: u16) -> u8 {
-    // In a real setup, you'd check which days have registered solutions in your lib.rs
-    // For now, we'll assume day 1 is the latest if no day is specified.
-    1
-}
-
-// Function to simulate getting input (you'd integrate your downloader here)
-fn get_input_for_day(_year: u16, _day: u8) -> String {
-    // This is where you call your downloader function from the previous step.
-    // Example: downloader::get_input(year, day).unwrap_or_else(...)
-    String::from("puzzle input data...")
-}
-
-fn run_single_solution(year: u16, day: u8, solutions: &HashMap<u8, Box<dyn AocSolution>>) {
-    println!("🚀 Running {year} Day {day}...");
-    if let Some(solution) = solutions.get(&day) {
-        let input = get_input_for_day(year, day);
-        println!("  Part 1: {}", solution.part1(&input));
-        println!("  Part 2: {}", solution.part2(&input));
-    } else {
-        eprintln!("  Solution for Day {day} not found.");
-    }
-}
-
-fn run_all_solutions(year: u16, solutions: &HashMap<u8, Box<dyn AocSolution>>) {
-    println!("🌟 Running ALL solutions for {year}...");
-    let mut days: Vec<_> = solutions.keys().copied().collect();
-    days.sort();
-
-    for day in days {
-        run_single_solution(year, day, solutions);
     }
 }

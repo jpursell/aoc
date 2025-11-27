@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use dotenv::dotenv;
 use reqwest::blocking::Client;
 use reqwest::header::COOKIE;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 
@@ -20,7 +21,7 @@ pub mod solutions;
 /// Downloads the puzzle input for a specific day, utilizing a local cache.
 ///
 /// The input is cached at `~/.cache/adventOfCode/{year}/day{day}/input.txt`.
-pub fn get_input(year: u16, day: u8) -> Result<String> {
+pub fn get_input_for_day(year: u16, day: u8) -> Result<String> {
     dotenv().ok(); // Load the .env file
 
     // --- 1. Define Cache Path ---
@@ -82,4 +83,37 @@ pub fn get_input(year: u16, day: u8) -> Result<String> {
     );
 
     Ok(input_content)
+}
+
+// --- Helper Functions ---
+
+/// Gets the latest solved day for the current year.
+pub fn get_latest_day(solutions: &HashMap<u8, Box<dyn AocSolution>>) -> u8 {
+    for day in 1..=31 {
+        if solutions.contains_key(&day) {
+            return day;
+        }
+    }
+    panic!("Did not find any present solutions!");
+}
+
+pub fn run_single_solution(year: u16, day: u8, solutions: &HashMap<u8, Box<dyn AocSolution>>) {
+    println!("🚀 Running {year} Day {day}...");
+    if let Some(solution) = solutions.get(&day) {
+        let input = get_input_for_day(year, day).unwrap();
+        println!("  Part 1: {}", solution.part1(&input));
+        println!("  Part 2: {}", solution.part2(&input));
+    } else {
+        eprintln!("  Solution for Day {day} not found.");
+    }
+}
+
+pub fn run_all_solutions(year: u16, solutions: &HashMap<u8, Box<dyn AocSolution>>) {
+    println!("🌟 Running ALL solutions for {year}...");
+    let mut days: Vec<_> = solutions.keys().copied().collect();
+    days.sort();
+
+    for day in days {
+        run_single_solution(year, day, solutions);
+    }
 }
