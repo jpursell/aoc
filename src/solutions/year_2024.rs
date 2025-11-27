@@ -64,12 +64,133 @@ impl AocSolution for Day01 {
     }
 }
 
+pub struct Day02;
+
+impl AocSolution for Day02 {
+    fn part1(&self, input: &str) -> String {
+        fn extract(str: &str) -> Vec<Vec<usize>> {
+            let count = str.lines().count();
+            let mut vecs = Vec::with_capacity(count);
+            for line in str.lines() {
+                let count = line.split_whitespace().count();
+                let mut vec = Vec::with_capacity(count);
+                for val in line.split_whitespace() {
+                    let val: usize = val.parse().unwrap();
+                    vec.push(val);
+                }
+                vecs.push(vec);
+            }
+            vecs
+        }
+
+        fn process_line(a: &[usize], increasing: bool) -> bool {
+            for chunk in a.windows(2) {
+                let d = if increasing {
+                    chunk[1] as i64 - chunk[0] as i64
+                } else {
+                    chunk[0] as i64 - chunk[1] as i64
+                };
+                let ok = matches!(d, 1..=3);
+                if !ok {
+                    return false;
+                }
+            }
+            true
+        }
+        fn process(vecs: Vec<Vec<usize>>) -> usize {
+            let mut out = 0;
+            for a in vecs.iter() {
+                let ok = process_line(a, true) || process_line(a, false);
+                if ok {
+                    out += 1;
+                }
+            }
+            out
+        }
+        // fn main() {
+        // let out = include_str!("02_test.txt");
+        // let out = extract(input);
+        // let out = process(out);
+        // assert_eq!(out, 2);
+
+        // let out = include_str!("02.txt");
+        let out = extract(input);
+        let out = process(out);
+        assert_eq!(out, 356);
+        out.to_string()
+        // }
+    }
+    fn part2(&self, input: &str) -> String {
+        fn extract(str: &str) -> Vec<Vec<usize>> {
+            let count = str.lines().count();
+            let mut vecs = Vec::with_capacity(count);
+            for line in str.lines() {
+                let count = line.split_whitespace().count();
+                let mut vec = Vec::with_capacity(count);
+                for val in line.split_whitespace() {
+                    let val: usize = val.parse().unwrap();
+                    vec.push(val);
+                }
+                vecs.push(vec);
+            }
+            vecs
+        }
+
+        fn process_line(a: &[usize], increasing: bool) -> bool {
+            for chunk in a.windows(2) {
+                let d = if increasing {
+                    chunk[1] as i64 - chunk[0] as i64
+                } else {
+                    chunk[0] as i64 - chunk[1] as i64
+                };
+                let ok = matches!(d, 1..=3);
+                if !ok {
+                    return false;
+                }
+            }
+            true
+        }
+        fn process_line_at(a: &[usize], loc: usize) -> bool {
+            let a: Vec<usize> = a
+                .iter()
+                .enumerate()
+                .filter(|(i, _x)| i != &loc)
+                .map(|(_i, x)| *x)
+                .collect();
+            process_line(&a, true) || process_line(&a, false)
+        }
+        fn process(vecs: Vec<Vec<usize>>) -> usize {
+            let mut out = 0;
+            for a in vecs.iter() {
+                for i in 0..a.len() {
+                    let ok = process_line_at(a, i);
+                    if ok {
+                        out += 1;
+                        break;
+                    }
+                }
+            }
+            out
+        }
+        // fn main() {
+        // let out = include_str!("02.txt");
+        let out = extract(input);
+        let out = process(out);
+        // println!("{out:?}");
+        // }
+        let out = out.to_string();
+        let expect = "413";
+        assert_eq!(out, expect);
+        out
+    }
+}
+
 // Map of all solutions for a given year
 pub fn get_solutions() -> std::collections::HashMap<u8, Box<dyn AocSolution>> {
     let mut map: std::collections::HashMap<u8, Box<dyn AocSolution>> =
         std::collections::HashMap::new();
     // Register every day here
     map.insert(1, Box::new(Day01));
-    // map.insert(2, Box::new(Day02));
+    map.insert(2, Box::new(Day02));
     map
 }

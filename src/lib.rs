@@ -89,7 +89,7 @@ pub fn get_input_for_day(year: u16, day: u8) -> Result<String> {
 
 /// Gets the latest solved day for the current year.
 pub fn get_latest_day(solutions: &HashMap<u8, Box<dyn AocSolution>>) -> u8 {
-    for day in 1..=31 {
+    for day in (1..=31).rev() {
         if solutions.contains_key(&day) {
             return day;
         }
