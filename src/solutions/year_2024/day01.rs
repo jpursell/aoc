@@ -48,10 +48,7 @@ fn process_lists_2(vecs: [Vec<usize>; 2]) -> usize {
 
 impl AocSolution for Day01 {
     fn part1(&self, input: &str) -> String {
-        let expected = "2164381";
-        let ret = process_lists(extract_lists(input)).to_string();
-        assert_eq!(ret, expected);
-        ret
+        process_lists(extract_lists(input)).to_string()
     }
 
     fn part2(&self, input: &str) -> String {
@@ -59,5 +56,27 @@ impl AocSolution for Day01 {
         let ret = process_lists_2(extract_lists_2(input)).to_string();
         assert_eq!(ret, expected);
         ret
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part1_example() {
+        let input = r"3   4
+4   3
+2   5
+1   3
+3   9
+3   3";
+
+        assert_eq!(Day01.part1(input), "11");
+    }
+    #[test]
+    fn test_part1_full() {
+        let input = crate::get_input_for_day(2024, 1).expect("Failed to get input");
+        assert_eq!(Day01 {}.part1(&input), "2164381");
     }
 }
