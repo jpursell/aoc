@@ -13,8 +13,8 @@ fn main() {
         let path = entry.path();
         if path.is_dir() {
             let year_str = path.file_name().unwrap().to_str().unwrap();
-            if year_str.starts_with("year_") {
-                if let Ok(year) = year_str[5..].parse::<u16>() {
+            if let Some(year_str_stripped) = year_str.strip_prefix("year_") {
+                if let Ok(year) = year_str_stripped.parse::<u16>() {
                     year_mods.push(format!("pub mod {};", year_str));
                     let mut day_mods = Vec::new();
                     let mut day_map = Vec::new();
@@ -71,14 +71,19 @@ pub fn get_solutions() -> std::collections::HashMap<u8, Box<dyn crate::AocSoluti
     writeln!(solutions_mod_file, "{}", year_mods.join("\n")).unwrap();
 
     let available_years_fn = format!(
-        "\npub fn available_years() -> std::collections::HashMap<u16, fn() -> std::collections::HashMap<u8, Box<dyn crate::AocSolution>>> {{
+        r#"
+type DaySolutionsMap = std::collections::HashMap<u8, Box<dyn crate::AocSolution>>;
+type YearSolutionsFn = fn() -> DaySolutionsMap;
+pub type YearSolutionsMap = std::collections::HashMap<u16, YearSolutionsFn>;
+
+pub fn available_years() -> YearSolutionsMap {{
     let mut map = std::collections::HashMap::new();
 {}
     map
-}}",
+}}"#,
         year_map
             .into_iter()
-            .map(|(y, f)| format!("    map.insert({}, {} as fn() -> std::collections::HashMap<u8, Box<dyn crate::AocSolution>>);", y, f))
+            .map(|(y, f)| format!("    map.insert({}, {} as YearSolutionsFn);", y, f))
             .collect::<Vec<_>>()
             .join("\n")
     );
