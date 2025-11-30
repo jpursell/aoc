@@ -20,7 +20,7 @@ fn main() -> std::io::Result<()> {
     let day_padded = format!("{:02}", day.parse::<u8>().unwrap());
 
     let template = fs::read_to_string("templates/day_template.rs")?;
-    let content = template.replace("{DAY}", &day_padded);
+    let content = template.replace("{DAY}", &day_padded).replace("{YEAR}", &year);
 
     let dir = format!("src/solutions/year_{}", year);
     fs::create_dir_all(&dir)?;

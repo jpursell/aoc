@@ -25,7 +25,7 @@ mod tests {
 
     #[test]
     fn test_part1_full() {
-        let input = crate::get_input_for_day(2024, {DAY}).expect("Failed to get input");
+        let input = crate::get_input_for_day({YEAR}, {DAY}).expect("Failed to get input");
         assert_eq!(Day{DAY}.part1(&input), "REPLACE_WITH_PART1_FULL_RESULT");
     }
 
@@ -36,7 +36,7 @@ mod tests {
 
     #[test]
     fn test_part2_full() {
-        let input = crate::get_input_for_day(2024, {DAY}).expect("Failed to get input");
+        let input = crate::get_input_for_day({YEAR}, {DAY}).expect("Failed to get input");
         assert_eq!(Day{DAY}.part2(&input), "REPLACE_WITH_PART2_FULL_RESULT");
     }
 }
