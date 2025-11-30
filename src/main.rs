@@ -1,10 +1,7 @@
 use clap::Parser;
-use std::collections::HashMap;
 use std::process;
 // Import your library functions
-use aoc::{
-    AocSolution, get_latest_day, run_all_solutions, run_single_solution, solutions::year_2024,
-};
+use aoc::{get_latest_day, run_all_solutions, run_single_solution, solutions};
 // Assuming your crate name is 'my-aoc-project'
 
 /// Advent of Code Runner
@@ -27,24 +24,27 @@ struct Args {
 // --- Main Dispatcher ---
 
 fn main() {
+    dotenv::from_filename(".aoc_config").ok();
     let args = Args::parse();
-    let current_year = 2024; // Update this each year!
+    let current_year = std::env::var("YEAR")
+        .expect("YEAR not set in .aoc_config")
+        .parse::<u16>()
+        .unwrap();
     let target_year = args.year.unwrap_or(current_year);
 
     // Map all available year solutions
-    let mut available_years: HashMap<u16, HashMap<u8, Box<dyn AocSolution>>> = HashMap::new();
-    // available_years.insert(2023, year_2023::get_solutions());
-    available_years.insert(2024, year_2024::get_solutions());
+    let available_years = solutions::available_years();
 
     match available_years.get(&target_year) {
-        Some(solutions) => {
+        Some(solutions_fn) => {
+            let solutions = solutions_fn();
             if args.all {
                 // Logic for `cargo run --year 2024 --all`
-                run_all_solutions(target_year, solutions);
+                run_all_solutions(target_year, &solutions);
             } else {
                 // Logic for `cargo run` or `cargo run --year 2024 -d 1`
-                let target_day = args.day.unwrap_or(get_latest_day(solutions));
-                run_single_solution(target_year, target_day, solutions);
+                let target_day = args.day.unwrap_or(get_latest_day(&solutions));
+                run_single_solution(target_year, target_day, &solutions);
             }
         }
         None => {
