@@ -82,7 +82,7 @@ impl AocSolution for Day02 {
 mod tests {
     use super::*;
 
-    const TEST_INPUT: &str = r"7 6 4 2 1
+    const EXAMPLE: &str = r"7 6 4 2 1
 1 2 7 8 9
 9 7 6 2 1
 1 3 2 4 5
@@ -91,7 +91,7 @@ mod tests {
 
     #[test]
     fn test_part1_example() {
-        assert_eq!(Day02.part1(TEST_INPUT), "2");
+        assert_eq!(Day02.part1(EXAMPLE), "2");
     }
     #[test]
     fn test_part1_full() {
@@ -100,7 +100,7 @@ mod tests {
     }
     #[test]
     fn test_part2_example() {
-        assert_eq!(Day02.part2(TEST_INPUT), "4");
+        assert_eq!(Day02.part2(EXAMPLE), "4");
     }
     #[test]
     fn test_part2_full() {

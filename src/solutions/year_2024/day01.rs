@@ -60,16 +60,16 @@ impl AocSolution for Day01 {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_part1_example() {
-        let input = r"3   4
+    const EXAMPLE: &str = r"3   4
 4   3
 2   5
 1   3
 3   9
 3   3";
 
-        assert_eq!(Day01.part1(input), "11");
+    #[test]
+    fn test_part1_example() {
+        assert_eq!(Day01.part1(EXAMPLE), "11");
     }
     #[test]
     fn test_part1_full() {
@@ -78,14 +78,7 @@ mod tests {
     }
     #[test]
     fn test_part2_example() {
-        let input = r"3   4
-4   3
-2   5
-1   3
-3   9
-3   3";
-
-        assert_eq!(Day01.part2(input), "31");
+        assert_eq!(Day01.part2(EXAMPLE), "31");
     }
     #[test]
     fn test_part2_full() {
