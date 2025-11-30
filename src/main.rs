@@ -38,7 +38,8 @@ fn main() {
     match available_years.get(&target_year) {
         Some(solutions_fn) => {
             let solutions = solutions_fn();
-            if args.all {
+            let run_all = args.all || (args.year.is_some() && args.day.is_none());
+            if run_all {
                 // Logic for `cargo run --year 2024 --all`
                 run_all_solutions(target_year, &solutions);
             } else {
