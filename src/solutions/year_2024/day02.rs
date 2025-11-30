@@ -67,35 +67,44 @@ impl Day02 {
 
 impl AocSolution for Day02 {
     fn part1(&self, input: &str) -> String {
-        let test = r"7 6 4 2 1
+        let out = Day02::extract(input);
+        let out = Day02::process_1(out);
+        out.to_string()
+    }
+    fn part2(&self, input: &str) -> String {
+        let out = Day02::extract(input);
+        let out = Day02::process_2(out);
+        out.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_INPUT: &str = r"7 6 4 2 1
 1 2 7 8 9
 9 7 6 2 1
 1 3 2 4 5
 8 6 4 4 1
 1 3 6 7 9";
-        // fn main() {
-        // let out = include_str!(test);
-        let out = Day02::extract(test);
-        let out = Day02::process_1(out);
-        assert_eq!(out, 2);
 
-        // let out = include_str!("02.txt");
-        let out = Day02::extract(input);
-        let out = Day02::process_1(out);
-        assert_eq!(out, 356);
-        out.to_string()
-        // }
+    #[test]
+    fn test_part1_example() {
+        assert_eq!(Day02.part1(TEST_INPUT), "2");
     }
-    fn part2(&self, input: &str) -> String {
-        // fn main() {
-        // let out = include_str!("02.txt");
-        let out = Day02::extract(input);
-        let out = Day02::process_2(out);
-        // println!("{out:?}");
-        // }
-        let out = out.to_string();
-        let expect = "413";
-        assert_eq!(out, expect);
-        out
+    #[test]
+    fn test_part1_full() {
+        let input = crate::get_input_for_day(2024, 2).expect("Failed to get input");
+        assert_eq!(Day02.part1(&input), "356");
+    }
+    #[test]
+    fn test_part2_example() {
+        assert_eq!(Day02.part2(TEST_INPUT), "4");
+    }
+    #[test]
+    fn test_part2_full() {
+        let input = crate::get_input_for_day(2024, 2).expect("Failed to get input");
+        assert_eq!(Day02 {}.part2(&input), "413");
     }
 }
