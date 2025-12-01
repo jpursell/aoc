@@ -51,7 +51,9 @@ impl Puzzle {
             while write_head < disc.len() && disc[write_head].is_some() {
                 write_head += 1;
             }
-            if write_head >= disc.len() { break; } // All are Some, or write_head reached end
+            if write_head >= disc.len() {
+                break;
+            } // All are Some, or write_head reached end
 
             while read_head > 0 && disc[read_head].is_none() {
                 read_head -= 1;
@@ -86,20 +88,26 @@ impl Puzzle {
         }
         None
     }
-    
+
     fn compact_disc_p2(disc: &mut [Option<usize>]) {
         let mut read_head = disc.len() - 1;
-        let start_id = disc[read_head].unwrap(); 
+        let start_id = disc[read_head].unwrap();
         for id in (1..=start_id).rev() {
             while read_head > 0 && (disc[read_head].is_none() || disc[read_head].unwrap() != id) {
                 read_head -= 1;
             }
-            if read_head == 0 { break; } // Reached start of disc
+            if read_head == 0 {
+                break;
+            } // Reached start of disc
             let block_end = read_head + 1;
             while read_head > 0 && disc[read_head].is_some() && disc[read_head].unwrap() == id {
                 read_head -= 1;
             }
-            let block_start = if read_head == 0 && disc[0].is_some() && disc[0].unwrap() == id { 0 } else { read_head + 1 };
+            let block_start = if read_head == 0 && disc[0].is_some() && disc[0].unwrap() == id {
+                0
+            } else {
+                read_head + 1
+            };
             let block_length = block_end - block_start;
 
             let gap = Puzzle::find_first_space(disc, block_length, block_start);
@@ -113,7 +121,6 @@ impl Puzzle {
             }
         }
     }
-
 
     fn process_p1(&mut self) -> usize {
         let mut disc = self.create_disc();
@@ -175,6 +182,4 @@ mod tests {
         let input = crate::get_input_for_day(2024, 9).expect("Failed to get input");
         assert_eq!(Day09.part2(&input), "6347435485773");
     }
-
-
 }

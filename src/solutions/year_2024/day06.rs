@@ -129,7 +129,6 @@ impl Puzzle {
         &self,
         position: [usize; 2],
         direction: Direction,
-        
     ) -> Option<([usize; 2], Direction)> {
         let shape = self.map.shape();
         // try to get forward position
