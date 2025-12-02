@@ -3,36 +3,75 @@ use std::collections::BTreeSet;
 
 pub struct Day02;
 
+// fn count_range(low: &str, high: &str) -> BTreeSet<u64> {
+//     let nlow = low.len();
+//     let nhigh = high.len();
+//     let nmax = nhigh / 2;
+//     let low_val: u64 = low.parse().unwrap();
+//     let high_val: u64 = high.parse().unwrap();
+//     let mut bad_ids = BTreeSet::new();
+//     let length = (nlow / 2).max(1);
+//     let mut start = 10_u64.pow(length as u32);
+
+//     loop {
+//         let pattern = start.to_string();
+//         let length = pattern.len();
+//         if pattern.len() > nmax {
+//             break;
+//         }
+//         for target_length in nlow..=nhigh {
+//             if target_length % length != 0 {
+//                 continue;
+//             }
+//             let nrep = target_length / length;
+//             if nrep != 2 {
+//                 continue;
+//             }
+//             let value: u64 = pattern.repeat(nrep).parse().unwrap();
+//             if value >= low_val && value <= high_val {
+//                 bad_ids.insert(value);
+//             }
+//         }
+//         start += 1;
+//     }
+//     bad_ids
+// }
+
 fn count_range(low: &str, high: &str) -> BTreeSet<u64> {
-    let nlow = low.len();
-    let nhigh = high.len();
-    let nmax = nhigh / 2;
     let low_val: u64 = low.parse().unwrap();
     let high_val: u64 = high.parse().unwrap();
+
+    let nlow = low.len();
+    let nhigh = high.len();
+
+    let start_length = (nlow / 2).max(1);
+    let end_length = (nhigh / 2).max(1);
+
     let mut bad_ids = BTreeSet::new();
-    let length = (nlow / 2).max(1);
-    let mut start = 10_u64.pow(length as u32);
+
+    let mut val = 10_u64.pow(start_length);
 
     loop {
-        let pattern = start.to_string();
-        let length = pattern.len();
-        if pattern.len() > nmax {
-            break;
-        }
-        for target_length in nlow..=nhigh {
-            if target_length % length != 0 {
-                continue;
-            }
-            let nrep = target_length / length;
-            if nrep != 2 {
-                continue;
-            }
-            let value: u64 = pattern.repeat(nrep).parse().unwrap();
-            if value >= low_val && value <= high_val {
-                bad_ids.insert(value);
-            }
-        }
-        start += 1;
+
+        //     let pattern = start.to_string();
+        //     let length = pattern.len();
+        //     if pattern.len() > nmax {
+        //         break;
+        //     }
+        //     for target_length in nlow..=nhigh {
+        //         if target_length % length != 0 {
+        //             continue;
+        //         }
+        //         let nrep = target_length / length;
+        //         if nrep != 2 {
+        //             continue;
+        //         }
+        //         let value: u64 = pattern.repeat(nrep).parse().unwrap();
+        //         if value >= low_val && value <= high_val {
+        //             bad_ids.insert(value);
+        //         }
+        //     }
+        //     start += 1;
     }
     bad_ids
 }
