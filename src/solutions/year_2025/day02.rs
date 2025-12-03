@@ -35,21 +35,30 @@ fn find_repeats(low: &str, high: &str) -> BTreeSet<u64> {
     let nlow = low.len();
     let nhigh = high.len();
 
-    let start_length = (nlow / 2).max(1);
+    let start_length = 1;
     let end_length = (nhigh / 2).max(1);
 
     let mut bad_ids = BTreeSet::new();
 
     for length in start_length..=end_length {
-        let start_val = 10_u64.pow((length - 1) as u32);
-        let shift = start_val * 10;
-        for val in start_val..start_val * 10 {
-            let test = val + val * shift;
-            if test >= low_val && test <= high_val {
-                bad_ids.insert(test);
+        let min_reps = (nlow / length).max(2);
+        let max_reps = nhigh / length;
+        for reps in min_reps..=max_reps {
+            let start_val = 10_u64.pow((length - 1) as u32);
+            let shift = start_val * 10;
+            for val in start_val..start_val * 10 {
+                let mut test = val;
+                for _ in 1..reps {
+                    test *= shift;
+                    test += val;
+                }
+                if test >= low_val && test <= high_val {
+                    bad_ids.insert(test);
+                }
             }
         }
     }
+    println!("{}-{} -> {:?}", low, high, bad_ids);
     bad_ids
 }
 
@@ -107,6 +116,12 @@ mod tests {
     }
 
     #[test]
+    fn test_find_repeats_11_22() {
+        let expected = BTreeSet::from([11_u64, 22_u64]);
+        assert_eq!(expected, find_repeats("11", "22"));
+    }
+
+    #[test]
     fn test_part2_example() {
         assert_eq!(Day02.part2(EXAMPLE), "4174379265");
     }
@@ -114,6 +129,6 @@ mod tests {
     #[test]
     fn test_part2_full() {
         let input = crate::get_input_for_day(2025, 2).expect("Failed to get input");
-        assert_eq!(Day02.part2(&input), "REPLACE_WITH_PART2_FULL_RESULT");
+        assert_eq!(Day02.part2(&input), "44143124633");
     }
 }
