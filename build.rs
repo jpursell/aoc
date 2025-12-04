@@ -24,6 +24,17 @@ fn read_year_dirs(solutions_dir: &Path) -> Vec<PathBuf> {
     year_dirs
 }
 
+fn find_days(path: &PathBuf) -> Vec<PathBuf> {
+    let mut days: Vec<PathBuf> = fs::read_dir(path)
+        .unwrap()
+        .filter(|p| p.is_ok())
+        .map(|p| p.unwrap().path())
+        .filter(|p| p.is_file())
+        .collect();
+    days.sort();
+    days
+}
+
 fn main() {
     let solutions_dir = Path::new("src/solutions");
     let mut year_mods = Vec::new();
@@ -39,22 +50,18 @@ fn main() {
                 let mut day_mods = Vec::new();
                 let mut day_map = Vec::new();
 
-                for day_entry in fs::read_dir(&path).unwrap() {
-                    let day_entry = day_entry.unwrap();
-                    let day_path = day_entry.path();
-                    if day_path.is_file() {
-                        let day_file_name = day_path.file_name().unwrap().to_str().unwrap();
-                        if day_file_name.starts_with("day") && day_file_name.ends_with(".rs") {
-                            let day_mod_name = &day_file_name[..day_file_name.len() - 3];
-                            let day_num_str = &day_mod_name[3..];
-                            if let Ok(day_num) = day_num_str.parse::<u8>() {
-                                let day_struct = format!("Day{:02}", day_num);
-                                day_mods.push(format!("pub mod {};", day_mod_name));
-                                day_map.push(format!(
-                                    "    map.insert({}, Box::new(super::{}::{}));",
-                                    day_num, day_mod_name, day_struct
-                                ));
-                            }
+                for day_path in find_days(&path) {
+                    let day_file_name = day_path.file_name().unwrap().to_str().unwrap();
+                    if day_file_name.starts_with("day") && day_file_name.ends_with(".rs") {
+                        let day_mod_name = &day_file_name[..day_file_name.len() - 3];
+                        let day_num_str = &day_mod_name[3..];
+                        if let Ok(day_num) = day_num_str.parse::<u8>() {
+                            let day_struct = format!("Day{:02}", day_num);
+                            day_mods.push(format!("pub mod {};", day_mod_name));
+                            day_map.push(format!(
+                                "    map.insert({}, Box::new(super::{}::{}));",
+                                day_num, day_mod_name, day_struct
+                            ));
                         }
                     }
                 }
