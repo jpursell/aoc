@@ -33,7 +33,7 @@ fn parse(input: &str) -> Puzzle {
     Puzzle { ranges, ids }
 }
 
-fn combine_ranges(mut ranges: Vec<RangeInclusive<u64>>) -> Vec<RangeInclusive<u64>> {
+pub fn combine_ranges(mut ranges: Vec<RangeInclusive<u64>>) -> Vec<RangeInclusive<u64>> {
     // let mut puzzle = parse(input);
     let mut combined_ranges: Vec<RangeInclusive<u64>> = Vec::with_capacity(ranges.len());
     let mut next = None;
@@ -111,6 +111,21 @@ mod tests {
         assert!(range.contains(&3));
         assert!(!range.contains(&4));
     }
+
+    #[test]
+    fn test_combine() {
+        let ranges = vec![2..=4, 3..=3];
+        let combined = combine_ranges(ranges);
+        assert_eq!(&combined, &[2..=4]);
+    }
+
+    #[test]
+    fn test_combine_2() {
+        let ranges = vec![3..=3, 2..=4];
+        let combined = combine_ranges(ranges);
+        assert_eq!(&combined, &[2..=4]);
+    }
+
     #[test]
     fn test_part1_example() {
         assert_eq!(Day05.part1(EXAMPLE), "3");
