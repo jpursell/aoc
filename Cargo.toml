@@ -11,9 +11,14 @@ counter = "0.7.0"
 dirs = "6.0.0"
 dotenv = "0.15.0"
 ndarray = "0.17.1"
+rand = "0.9.2"
 regex = "1.12.2"
 reqwest = { version = "0.12.24", features = ["blocking"] }
 
 [[bin]]
 name = "scaffold"
 path = "src/bin/scaffold.rs"
+
+[[bin]]
+name = "y2025d05"
+path = "src/bin/y2025d05.rs"
