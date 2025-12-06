@@ -44,7 +44,12 @@ pub fn combine_ranges(mut ranges: Vec<RangeInclusive<u64>>) -> Vec<RangeInclusiv
         let mut matched = None;
         for (index, range) in combined_ranges.iter().enumerate() {
             let next_inner = next.as_ref().unwrap();
-            if range.contains(next_inner.start()) || range.contains(next_inner.end()) {
+            // check for intersection
+            if range.contains(next_inner.start())
+                || range.contains(next_inner.end())
+                || next_inner.contains(range.start())
+                || next_inner.contains(range.end())
+            {
                 matched = Some(index);
                 break;
             }
@@ -145,10 +150,6 @@ mod tests {
     #[test]
     fn test_part2_full() {
         let input = crate::get_input_for_day(2025, 5).expect("Failed to get input");
-        let too_high = 338461571472310_u64;
-        let result = Day05.part2(&input);
-        let result_val: u64 = result.parse().unwrap();
-        assert!(result_val < too_high);
-        assert_eq!(Day05.part2(&input), "REPLACE_WITH_PART2_FULL_RESULT");
+        assert_eq!(Day05.part2(&input), "332998283036769");
     }
 }
