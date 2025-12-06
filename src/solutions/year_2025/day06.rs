@@ -44,6 +44,47 @@ fn solve_worksheet(input: &str) -> u64 {
         .sum()
 }
 
+fn solve_transpose_worksheet(input: &str) -> u64 {
+    let mut iters: Vec<_> = input.lines().map(|line| line.chars().rev()).collect();
+    let mut stack: Vec<u64> = Vec::new();
+    let mut total = 0;
+    loop {
+        let last_col: Vec<_> = iters.iter_mut().map(|i| i.next()).collect();
+        if last_col[0].is_none() {
+            break;
+        }
+        let last_col: String = last_col.iter().map(|x| x.unwrap()).collect();
+        total += match last_col.chars().next_back().unwrap() {
+            ' ' => {
+                stack.push(
+                    last_col
+                        .trim()
+                        .parse()
+                        .expect("Failed to parse col ending in space to number"),
+                );
+                0
+            }
+            c => {
+                let last_num: String = last_col.chars().take(last_col.len() - 1).collect();
+                stack.push(last_num.trim().parse().unwrap());
+                let val = match c {
+                    '+' => stack.iter().sum(),
+                    '*' => stack.iter().product(),
+                    _ => panic!("Got unknown operator"),
+                };
+                stack.clear();
+
+                // clear empty col
+                iters.iter_mut().for_each(|i| {
+                    i.next();
+                });
+                val
+            }
+        };
+    }
+    total
+}
+
 pub struct Day06;
 
 impl AocSolution for Day06 {
@@ -51,8 +92,8 @@ impl AocSolution for Day06 {
         solve_worksheet(input).to_string()
     }
 
-    fn part2(&self, _input: &str) -> String {
-        "Not implemented".to_string()
+    fn part2(&self, input: &str) -> String {
+        solve_transpose_worksheet(input).to_string()
     }
 }
 
@@ -78,12 +119,12 @@ mod tests {
 
     #[test]
     fn test_part2_example() {
-        assert_eq!(Day06.part2(EXAMPLE), "REPLACE_WITH_PART2_EXAMPLE_RESULT");
+        assert_eq!(Day06.part2(EXAMPLE), "3263827");
     }
 
     #[test]
     fn test_part2_full() {
         let input = crate::get_input_for_day(2025, 6).expect("Failed to get input");
-        assert_eq!(Day06.part2(&input), "REPLACE_WITH_PART2_FULL_RESULT");
+        assert_eq!(Day06.part2(&input), "9770311947567");
     }
 }
