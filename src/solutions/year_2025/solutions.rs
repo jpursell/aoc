@@ -8,5 +8,6 @@ pub fn get_solutions() -> std::collections::HashMap<u8, Box<dyn crate::AocSoluti
     map.insert(4, Box::new(super::day04::Day04));
     map.insert(5, Box::new(super::day05::Day05));
     map.insert(6, Box::new(super::day06::Day06));
+    map.insert(7, Box::new(super::day07::Day07));
     map
 }
