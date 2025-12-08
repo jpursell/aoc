@@ -1,8 +1,14 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, fmt::Display};
 
 #[derive(Debug)]
 struct Node {
     pos: [u16; 3],
+}
+
+impl Display for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}, {}, {}]", self.pos[0], self.pos[1], self.pos[2])
+    }
 }
 
 #[derive(Debug)]
@@ -56,10 +62,17 @@ fn find_closest_connections(nodes: &[Node], n: usize) -> Vec<Connection> {
         .collect()
 }
 
-fn find_connected_groups(connections: &[Connection]) -> Vec<BTreeSet<usize>> {
+fn find_connected_groups(connections: &[Connection], nodes: &[Node]) -> Vec<BTreeSet<usize>> {
     let mut groups: Vec<BTreeSet<usize>> = Vec::new();
     for connection in connections {
-        dbg!(&connection);
+        eprintln!(
+            "Connection: Nonde[{}]: {} -> Node[{}]: {}",
+            connection.indices[0],
+            nodes[connection.indices[0]],
+            connection.indices[1],
+            nodes[connection.indices[1]]
+        );
+
         let [a, b] = &connection.indices;
         let a_group = groups
             .iter()
@@ -106,17 +119,20 @@ fn find_connected_groups(connections: &[Connection]) -> Vec<BTreeSet<usize>> {
                 }
             }
         }
-        dbg!(&groups);
+        eprintln!("groups:");
+        for (group_num, group) in groups.iter().enumerate() {
+            eprintln!("  group[{}]:", group_num);
+            for index in group.iter() {
+                eprintln!("    Node[{}]: {}", index, nodes[*index])
+            }
+        }
     }
     groups
 }
 fn part1(input: &str, n: usize) -> String {
     let nodes = make_node_list(input);
-    dbg!(&nodes);
     let connections = find_closest_connections(&nodes, n);
-    dbg!(&connections);
-    let groups = find_connected_groups(&connections);
-    dbg!(&groups);
+    let groups = find_connected_groups(&connections, &nodes);
     groups
         .iter()
         .map(|g| g.len())
