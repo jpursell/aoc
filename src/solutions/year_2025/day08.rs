@@ -23,18 +23,18 @@ fn make_node_list(input: &str) -> Vec<Node> {
         })
         .collect()
 }
-fn compute_sq_distance(a: &Node, b: &Node) -> f32 {
+fn compute_sq_distance(a: &Node, b: &Node) -> f64 {
     a.pos
         .iter()
         .zip(b.pos.iter())
-        .map(|(a, b)| (*a as f32 - *b as f32).powi(2))
+        .map(|(a, b)| (*a as f64 - *b as f64).powi(2))
         .sum()
 }
-fn find_sq_distance_map(nodes: &[Node]) -> Array2<f32> {
+fn find_sq_distance_map(nodes: &[Node]) -> Array2<f64> {
     let mut dmap = Array2::zeros((nodes.len(), nodes.len()));
     for (ia, a) in nodes.iter().enumerate() {
         for (ib, b) in nodes.iter().enumerate().skip(ia + 1) {
-            let dist: f32 = compute_sq_distance(a, b);
+            let dist: f64 = compute_sq_distance(a, b);
             *(dmap.get_mut([ia, ib]).unwrap()) = dist;
         }
     }
@@ -42,7 +42,7 @@ fn find_sq_distance_map(nodes: &[Node]) -> Array2<f32> {
 }
 fn find_closest_connections(nodes: &[Node], n: usize) -> Vec<Connection> {
     let dmap = find_sq_distance_map(nodes);
-    let mut distances: Vec<((usize, usize), &f32)> = dmap
+    let mut distances: Vec<((usize, usize), &f64)> = dmap
         .indexed_iter()
         .filter(|(_pos, dist)| **dist > 0.0)
         .collect();
