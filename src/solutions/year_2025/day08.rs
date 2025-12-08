@@ -1,9 +1,11 @@
 use std::collections::BTreeSet;
 
 use ndarray::prelude::*;
+#[derive(Debug)]
 struct Node {
     pos: [u16; 3],
 }
+#[derive(Debug)]
 struct Connection {
     indices: [usize; 2],
 }
@@ -57,6 +59,7 @@ fn find_closest_connections(nodes: &[Node], n: usize) -> Vec<Connection> {
 fn find_connected_groups(connections: &[Connection]) -> Vec<BTreeSet<usize>> {
     let mut groups: Vec<BTreeSet<usize>> = Vec::new();
     for connection in connections {
+        dbg!(&connection);
         let [a, b] = &connection.indices;
         let a_group = groups
             .iter()
@@ -71,29 +74,49 @@ fn find_connected_groups(connections: &[Connection]) -> Vec<BTreeSet<usize>> {
         match (a_group, b_group) {
             (None, None) => {
                 // add both nodes to a new group
+                eprintln!("Create new group: {:?}", connection.indices);
                 groups.push(BTreeSet::from_iter(connection.indices.iter().copied()));
             }
             (None, Some(bg)) => {
                 // add unconnected node to existing group
+                eprintln!("{} -> {:?}", a, groups[bg]);
                 groups[bg].insert(*a);
             }
             (Some(ag), None) => {
                 // add unconnected node to existing group
+                eprintln!("{} -> {:?}", b, groups[ag]);
                 groups[ag].insert(*b);
             }
             (Some(ag), Some(bg)) => {
-                // merge groups
-                let mut b_group = groups.swap_remove(bg);
-                groups[ag].append(&mut b_group);
+                // don't do anything if already in same group
+                if ag != bg {
+                    // merge groups
+                    eprintln!(
+                        "groups[{}]:{:?} -> groups[{}]{:?}",
+                        bg, groups[bg], ag, groups[ag]
+                    );
+                    let mut b_group = groups.swap_remove(bg);
+                    let ag = groups
+                        .iter()
+                        .enumerate()
+                        .find(|g| g.1.contains(a))
+                        .map(|g| g.0)
+                        .unwrap();
+                    groups[ag].append(&mut b_group);
+                }
             }
         }
+        dbg!(&groups);
     }
     groups
 }
 fn part1(input: &str, n: usize) -> String {
     let nodes = make_node_list(input);
+    dbg!(&nodes);
     let connections = find_closest_connections(&nodes, n);
+    dbg!(&connections);
     let groups = find_connected_groups(&connections);
+    dbg!(&groups);
     groups
         .iter()
         .map(|g| g.len())
