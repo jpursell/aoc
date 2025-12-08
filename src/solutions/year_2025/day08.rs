@@ -1,14 +1,15 @@
 use std::collections::BTreeSet;
 
-use ndarray::prelude::*;
 #[derive(Debug)]
 struct Node {
     pos: [u16; 3],
 }
+
 #[derive(Debug)]
 struct Connection {
     indices: [usize; 2],
 }
+
 fn make_node_list(input: &str) -> Vec<Node> {
     input
         .lines()
@@ -23,6 +24,7 @@ fn make_node_list(input: &str) -> Vec<Node> {
         })
         .collect()
 }
+
 fn compute_sq_distance(a: &Node, b: &Node) -> f64 {
     a.pos
         .iter()
@@ -30,23 +32,21 @@ fn compute_sq_distance(a: &Node, b: &Node) -> f64 {
         .map(|(a, b)| (*a as f64 - *b as f64).powi(2))
         .sum()
 }
-fn find_sq_distance_map(nodes: &[Node]) -> Array2<f64> {
-    let mut dmap = Array2::zeros((nodes.len(), nodes.len()));
+
+fn find_sq_distance_map(nodes: &[Node]) -> Vec<((usize, usize), f64)> {
+    let mut distances = Vec::with_capacity(nodes.len() * (nodes.len() - 1) / 2);
     for (ia, a) in nodes.iter().enumerate() {
         for (ib, b) in nodes.iter().enumerate().skip(ia + 1) {
             let dist: f64 = compute_sq_distance(a, b);
-            *(dmap.get_mut([ia, ib]).unwrap()) = dist;
+            distances.push(((ia, ib), dist));
         }
     }
-    dmap
+    distances
 }
+
 fn find_closest_connections(nodes: &[Node], n: usize) -> Vec<Connection> {
-    let dmap = find_sq_distance_map(nodes);
-    let mut distances: Vec<((usize, usize), &f64)> = dmap
-        .indexed_iter()
-        .filter(|(_pos, dist)| **dist > 0.0)
-        .collect();
-    distances.sort_by(|a, b| a.1.total_cmp(b.1));
+    let mut distances = find_sq_distance_map(nodes);
+    distances.sort_by(|a, b| a.1.total_cmp(&b.1));
     distances
         .iter()
         .take(n)
