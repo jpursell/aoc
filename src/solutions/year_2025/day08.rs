@@ -50,20 +50,23 @@ fn find_sq_distance_map(nodes: &[Node]) -> Vec<((usize, usize), f64)> {
     distances
 }
 
-fn find_closest_connections(nodes: &[Node], n: usize) -> Vec<Connection> {
+fn find_closest_connections(nodes: &[Node], n: Option<usize>) -> Vec<Connection> {
     let mut distances = find_sq_distance_map(nodes);
     distances.sort_by(|a, b| a.1.total_cmp(&b.1));
+    let distances = match n {
+        Some(n) => &distances[..n],
+        None => &distances,
+    };
     distances
         .iter()
-        .take(n)
         .map(|(pos, _dist)| Connection {
             indices: [pos.0, pos.1],
         })
         .collect()
 }
 
-fn find_connected_groups(connections: &[Connection], // , nodes: &[Node]
-) -> Vec<BTreeSet<usize>> {
+fn find_connected_groups(connections: &[Connection], nodes: &[Node]) -> Vec<BTreeSet<usize>> {
+    let nnodes = nodes.len();
     let mut groups: Vec<BTreeSet<usize>> = Vec::new();
     for connection in connections {
         // eprintln!(
@@ -117,6 +120,9 @@ fn find_connected_groups(connections: &[Connection], // , nodes: &[Node]
                         .map(|g| g.0)
                         .unwrap();
                     groups[ag].append(&mut b_group);
+                    if groups.len() == 1 && groups[0].len() == nnodes {
+                        return vec![BTreeSet::from([ag, bg])];
+                    }
                 }
             }
         }
@@ -132,10 +138,8 @@ fn find_connected_groups(connections: &[Connection], // , nodes: &[Node]
 }
 fn part1(input: &str, n: usize) -> String {
     let nodes = make_node_list(input);
-    let connections = find_closest_connections(&nodes, n);
-    let groups = find_connected_groups(
-        &connections, // , &nodes
-    );
+    let connections = find_closest_connections(&nodes, Some(n));
+    let groups = find_connected_groups(&connections, &nodes);
     let mut group_sizes: Vec<usize> = groups.iter().map(|g| g.len()).collect();
     group_sizes.sort();
     group_sizes
@@ -144,6 +148,20 @@ fn part1(input: &str, n: usize) -> String {
         .take(3)
         .product::<usize>()
         .to_string()
+}
+fn part2(input: &str) -> String {
+    let nodes = make_node_list(input);
+    let connections = find_closest_connections(&nodes, None);
+    let groups = find_connected_groups(&connections, &nodes);
+    assert_eq!(groups.len(), 1);
+    assert_eq!(groups[0].len(), 2);
+    let indices: Vec<&usize> = groups[0].iter().collect();
+    assert_eq!(indices.len(), 2);
+    let node_a = &nodes[*indices[0]];
+    let node_b = &nodes[*indices[1]];
+    dbg!(node_a);
+    dbg!(node_b);
+    (node_a.pos[0] * node_b.pos[0]).to_string()
 }
 use crate::AocSolution;
 
@@ -154,8 +172,8 @@ impl AocSolution for Day08 {
         part1(input, 1000)
     }
 
-    fn part2(&self, _input: &str) -> String {
-        "Not implemented".to_string()
+    fn part2(&self, input: &str) -> String {
+        part2(input)
     }
 }
 
