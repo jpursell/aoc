@@ -69,14 +69,6 @@ fn find_connected_groups(connections: &[Connection], nodes: &[Node]) -> Vec<BTre
     let nnodes = nodes.len();
     let mut groups: Vec<BTreeSet<usize>> = Vec::new();
     for connection in connections {
-        // eprintln!(
-        //     "Connection: Nonde[{}]: {} -> Node[{}]: {}",
-        //     connection.indices[0],
-        //     nodes[connection.indices[0]],
-        //     connection.indices[1],
-        //     nodes[connection.indices[1]]
-        // );
-
         let [a, b] = &connection.indices;
         let a_group = groups
             .iter()
@@ -91,27 +83,20 @@ fn find_connected_groups(connections: &[Connection], nodes: &[Node]) -> Vec<BTre
         match (a_group, b_group) {
             (None, None) => {
                 // add both nodes to a new group
-                // eprintln!("Create new group: {:?}", connection.indices);
                 groups.push(BTreeSet::from_iter(connection.indices.iter().copied()));
             }
             (None, Some(bg)) => {
                 // add unconnected node to existing group
-                // eprintln!("{} -> {:?}", a, groups[bg]);
                 groups[bg].insert(*a);
             }
             (Some(ag), None) => {
                 // add unconnected node to existing group
-                // eprintln!("{} -> {:?}", b, groups[ag]);
                 groups[ag].insert(*b);
             }
             (Some(ag), Some(bg)) => {
                 // don't do anything if already in same group
                 if ag != bg {
                     // merge groups
-                    // eprintln!(
-                    //     "groups[{}]:{:?} -> groups[{}]{:?}",
-                    //     bg, groups[bg], ag, groups[ag]
-                    // );
                     let mut b_group = groups.swap_remove(bg);
                     let ag = groups
                         .iter()
@@ -120,19 +105,12 @@ fn find_connected_groups(connections: &[Connection], nodes: &[Node]) -> Vec<BTre
                         .map(|g| g.0)
                         .unwrap();
                     groups[ag].append(&mut b_group);
-                    if groups.len() == 1 && groups[0].len() == nnodes {
-                        return vec![BTreeSet::from([ag, bg])];
-                    }
                 }
             }
         }
-        // eprintln!("groups:");
-        // for (group_num, group) in groups.iter().enumerate() {
-        //     eprintln!("  group[{}]:", group_num);
-        //     for index in group.iter() {
-        //         eprintln!("    Node[{}]: {}", index, nodes[*index])
-        //     }
-        // }
+        if groups.len() == 1 && groups[0].len() == nnodes {
+            return vec![BTreeSet::from([*a, *b])];
+        }
     }
     groups
 }
@@ -159,9 +137,7 @@ fn part2(input: &str) -> String {
     assert_eq!(indices.len(), 2);
     let node_a = &nodes[*indices[0]];
     let node_b = &nodes[*indices[1]];
-    dbg!(node_a);
-    dbg!(node_b);
-    (node_a.pos[0] * node_b.pos[0]).to_string()
+    (node_a.pos[0] as u64 * node_b.pos[0] as u64).to_string()
 }
 use crate::AocSolution;
 
@@ -221,6 +197,6 @@ mod tests {
     #[test]
     fn test_part2_full() {
         let input = crate::get_input_for_day(2025, 8).expect("Failed to get input");
-        assert_eq!(Day08.part2(&input), "REPLACE_WITH_PART2_FULL_RESULT");
+        assert_eq!(Day08.part2(&input), "8995844880");
     }
 }
