@@ -133,9 +133,12 @@ fn part1(input: &str, n: usize) -> String {
     let nodes = make_node_list(input);
     let connections = find_closest_connections(&nodes, n);
     let groups = find_connected_groups(&connections, &nodes);
-    groups
+    let mut group_sizes: Vec<usize> = groups.iter().map(|g| g.len()).collect();
+    group_sizes.sort();
+    group_sizes
         .iter()
-        .map(|g| g.len())
+        .rev()
+        .take(3)
         .product::<usize>()
         .to_string()
 }
