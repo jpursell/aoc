@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, fmt::Display};
 
 #[derive(Debug)]
 struct Node {
-    pos: [u16; 3],
+    pos: [u32; 3],
 }
 
 impl Display for Node {
@@ -20,7 +20,7 @@ fn make_node_list(input: &str) -> Vec<Node> {
     input
         .lines()
         .map(|line| {
-            let vec: Vec<u16> = line
+            let vec: Vec<u32> = line
                 .split(",")
                 .map(|s| s.parse().expect("Count not parse node position"))
                 .collect();
@@ -62,16 +62,17 @@ fn find_closest_connections(nodes: &[Node], n: usize) -> Vec<Connection> {
         .collect()
 }
 
-fn find_connected_groups(connections: &[Connection], nodes: &[Node]) -> Vec<BTreeSet<usize>> {
+fn find_connected_groups(connections: &[Connection], // , nodes: &[Node]
+) -> Vec<BTreeSet<usize>> {
     let mut groups: Vec<BTreeSet<usize>> = Vec::new();
     for connection in connections {
-        eprintln!(
-            "Connection: Nonde[{}]: {} -> Node[{}]: {}",
-            connection.indices[0],
-            nodes[connection.indices[0]],
-            connection.indices[1],
-            nodes[connection.indices[1]]
-        );
+        // eprintln!(
+        //     "Connection: Nonde[{}]: {} -> Node[{}]: {}",
+        //     connection.indices[0],
+        //     nodes[connection.indices[0]],
+        //     connection.indices[1],
+        //     nodes[connection.indices[1]]
+        // );
 
         let [a, b] = &connection.indices;
         let a_group = groups
@@ -87,27 +88,27 @@ fn find_connected_groups(connections: &[Connection], nodes: &[Node]) -> Vec<BTre
         match (a_group, b_group) {
             (None, None) => {
                 // add both nodes to a new group
-                eprintln!("Create new group: {:?}", connection.indices);
+                // eprintln!("Create new group: {:?}", connection.indices);
                 groups.push(BTreeSet::from_iter(connection.indices.iter().copied()));
             }
             (None, Some(bg)) => {
                 // add unconnected node to existing group
-                eprintln!("{} -> {:?}", a, groups[bg]);
+                // eprintln!("{} -> {:?}", a, groups[bg]);
                 groups[bg].insert(*a);
             }
             (Some(ag), None) => {
                 // add unconnected node to existing group
-                eprintln!("{} -> {:?}", b, groups[ag]);
+                // eprintln!("{} -> {:?}", b, groups[ag]);
                 groups[ag].insert(*b);
             }
             (Some(ag), Some(bg)) => {
                 // don't do anything if already in same group
                 if ag != bg {
                     // merge groups
-                    eprintln!(
-                        "groups[{}]:{:?} -> groups[{}]{:?}",
-                        bg, groups[bg], ag, groups[ag]
-                    );
+                    // eprintln!(
+                    //     "groups[{}]:{:?} -> groups[{}]{:?}",
+                    //     bg, groups[bg], ag, groups[ag]
+                    // );
                     let mut b_group = groups.swap_remove(bg);
                     let ag = groups
                         .iter()
@@ -119,20 +120,22 @@ fn find_connected_groups(connections: &[Connection], nodes: &[Node]) -> Vec<BTre
                 }
             }
         }
-        eprintln!("groups:");
-        for (group_num, group) in groups.iter().enumerate() {
-            eprintln!("  group[{}]:", group_num);
-            for index in group.iter() {
-                eprintln!("    Node[{}]: {}", index, nodes[*index])
-            }
-        }
+        // eprintln!("groups:");
+        // for (group_num, group) in groups.iter().enumerate() {
+        //     eprintln!("  group[{}]:", group_num);
+        //     for index in group.iter() {
+        //         eprintln!("    Node[{}]: {}", index, nodes[*index])
+        //     }
+        // }
     }
     groups
 }
 fn part1(input: &str, n: usize) -> String {
     let nodes = make_node_list(input);
     let connections = find_closest_connections(&nodes, n);
-    let groups = find_connected_groups(&connections, &nodes);
+    let groups = find_connected_groups(
+        &connections, // , &nodes
+    );
     let mut group_sizes: Vec<usize> = groups.iter().map(|g| g.len()).collect();
     group_sizes.sort();
     group_sizes
@@ -189,12 +192,12 @@ mod tests {
     #[test]
     fn test_part1_full() {
         let input = crate::get_input_for_day(2025, 8).expect("Failed to get input");
-        assert_eq!(Day08.part1(&input), "REPLACE_WITH_PART1_FULL_RESULT");
+        assert_eq!(Day08.part1(&input), "75680");
     }
 
     #[test]
     fn test_part2_example() {
-        assert_eq!(Day08.part2(EXAMPLE), "REPLACE_WITH_PART2_EXAMPLE_RESULT");
+        assert_eq!(Day08.part2(EXAMPLE), "25272");
     }
 
     #[test]
