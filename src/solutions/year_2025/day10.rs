@@ -1,3 +1,4 @@
+use nalgebra::*;
 use std::{collections::HashSet, str::FromStr};
 
 use crate::AocSolution;
@@ -87,36 +88,13 @@ fn find_fewest_buttons_indicator_lights(machine: &Machine) -> u64 {
 }
 
 fn find_fewest_buttons_joltage(machine: &Machine) -> u64 {
-    let mut joltages_a: HashSet<Joltage> = HashSet::new();
-    let mut joltages_b: HashSet<Joltage> = HashSet::new();
-    let mut presses: u64 = 0;
-    let start: Joltage = machine.required.iter().map(|_| 0).collect();
-    joltages_a.insert(start);
-    loop {
-        presses += 1;
-        let (current, next) = if presses.is_multiple_of(2) {
-            (&mut joltages_b, &mut joltages_a)
-        } else {
-            (&mut joltages_a, &mut joltages_b)
-        };
-        for button in machine.buttons.iter() {
-            for joltage in current.iter() {
-                let new_joltage = button_press_joltage(joltage.clone(), button);
-                if new_joltage == machine.joltage {
-                    return presses;
-                }
-                if new_joltage
-                    .iter()
-                    .zip(machine.joltage.iter())
-                    .any(|(new, desired)| new > desired)
-                {
-                    continue;
-                }
-                next.insert(new_joltage);
-            }
-        }
-        current.clear();
-    }
+    let nrows = machine.joltage.len();
+    let ncols = machine.buttons.len();
+    let mut a = DMatrix::from_element(nrows, ncols, 0);
+    machine.buttons.iter().enumerate().for_each(|b|{
+        b.1.iter().for_each(|i|{a[i,b.0] += 1;});
+    });
+    0
 }
 
 pub struct Day10;
