@@ -1,5 +1,101 @@
 use std::{collections::BTreeMap, str::FromStr};
 
+enum Limit {
+    Xmin(u64),
+    Ymin(u64),
+    Xmax(u64),
+    Ymax(u64),
+}
+
+fn compute_intersection(
+    prev_point: &Point,
+    current_point: &Point,
+    clip_edge: &Limit,
+) -> Option<Point> {
+    let xsame = prev_point.x == current_point.x;
+    let ysame = prev_point.y == current_point.y;
+    assert!(!xsame || !ysame);
+    match clip_edge {
+        Limit::Xmin(xmin) => {
+            if xsame {
+                None
+            } else {
+                assert!(ysame);
+                Some(Point {
+                    x: *xmin,
+                    y: current_point.y,
+                })
+            }
+        }
+        Limit::Ymin(ymin) => {
+            if ysame {
+                None
+            } else {
+                assert!(xsame);
+                Some(Point {
+                    x: current_point.x,
+                    y: *ymin,
+                })
+            }
+        }
+        Limit::Xmax(xmax) => {
+            if xsame {
+                None
+            } else {
+                assert!(ysame);
+                Some(Point {
+                    x: *xmax,
+                    y: current_point.y,
+                })
+            }
+        }
+        Limit::Ymax(ymax) => {
+            if ysame {
+                None
+            } else {
+                assert!(xsame);
+                Some(Point {
+                    x: current_point.x,
+                    y: *ymax,
+                })
+            }
+        }
+    }
+}
+
+fn clip_polygon(subject_polygon: &[Point], corners: &[Point]) -> Vec<Point> {
+    let mut output_list: Vec<Point> = subject_polygon.iter().copied().collect();
+    let limits = [
+        Limit::Xmin(corners.iter().map(|p| p.x).min().unwrap()),
+        Limit::Ymin(corners.iter().map(|p| p.y).min().unwrap()),
+        Limit::Xmax(corners.iter().map(|p| p.x).max().unwrap()),
+        Limit::Ymax(corners.iter().map(|p| p.y).max().unwrap()),
+    ];
+
+    for clip_edge in &limits {
+        let input_list = output_list.clone();
+        output_list.clear();
+
+        for i in 0..input_list.len() {
+            let current_point = &input_list[i];
+            let prev_index = if i == 0 { input_list.len() - 1 } else { i - 1 };
+            let prev_point = &input_list[prev_index];
+
+            let intersecting_point = compute_intersection(prev_point, current_point, clip_edge);
+
+            if current_point.inside(clip_edge) {
+                if !prev_point.inside(clip_edge) {
+                    output_list.push(intersecting_point.unwrap());
+                }
+                output_list.push(*current_point);
+            } else if prev_point.inside(clip_edge) {
+                output_list.push(intersecting_point.unwrap());
+            }
+        }
+    }
+    output_list
+}
+
 use crate::AocSolution;
 
 #[derive(Clone, Copy, Debug)]
@@ -24,6 +120,14 @@ struct VirtSeg {
     y1: u64,
 }
 impl Point {
+    fn inside(&self, limit: &Limit) -> bool {
+        match limit {
+            Limit::Xmin(xmin) => self.x >= *xmin,
+            Limit::Ymin(ymin) => self.y >= *ymin,
+            Limit::Xmax(xmax) => self.x <= *xmax,
+            Limit::Ymax(ymax) => self.y <= *ymax,
+        }
+    }
     fn area(&self, other: &Point) -> u64 {
         (self.x.abs_diff(other.x) + 1) * (self.y.abs_diff(other.y) + 1)
     }
