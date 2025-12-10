@@ -125,7 +125,20 @@ fn clip_polygon(subject_polygon: &[Point], corners: &[Point]) -> Vec<Point> {
             } else {
                 &output_list[i + 1]
             };
-            // TODO finish this
+            let current = &output_list[i];
+            if previous.x == current.x && current.x == next.x {
+                found = Some(i);
+                break;
+            }
+            if previous.y == current.y && current.y == next.y {
+                found = Some(i);
+                break;
+            }
+        }
+        if let Some(i) = found {
+            output_list.remove(i);
+        } else {
+            break;
         }
     }
     output_list
@@ -181,17 +194,14 @@ fn find_largest_rectangle(points: &[Point], mode: Mode) -> u64 {
                     let corners = &[*point_a.1, *point_b];
                     let clipped_points = clip_polygon(points, corners);
                     if clipped_points.len() != 4 {
-                        eprintln!("Corners: {:?} - clipped to more than 4 points", corners);
                         continue;
                     }
 
                     let clipped_area = clipped_points[0].area(&clipped_points[2]);
                     let area = point_a.1.area(point_b);
                     if clipped_area != area {
-                        eprintln!("Corners: {:?} - clipped to different area", corners);
                         continue;
                     }
-                    eprintln!("Corners: {:?} - are inside", corners);
                     largest = largest.max(area)
                 }
             }
@@ -257,6 +267,6 @@ mod tests {
     #[test]
     fn test_part2_full() {
         let input = crate::get_input_for_day(2025, 9).expect("Failed to get input");
-        assert_eq!(Day09.part2(&input), "REPLACE_WITH_PART2_FULL_RESULT");
+        assert_eq!(Day09.part2(&input), "1637556834");
     }
 }
