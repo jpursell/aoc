@@ -1,11 +1,19 @@
-use std::str::FromStr;
+use std::{collections::HashSet, str::FromStr};
 
 use crate::AocSolution;
 
+type State = Vec<bool>;
+type Button = Vec<usize>;
+
 #[derive(Debug)]
 struct Machine {
-    required: Vec<bool>,
-    buttons: Vec<Vec<usize>>,
+    required: State,
+    buttons: Vec<Button>,
+}
+
+fn button_press(mut state: State, button: &Button) -> State {
+    button.iter().for_each(|&i| state[i] = !state[i]);
+    state
 }
 
 impl FromStr for Machine {
@@ -38,13 +46,41 @@ fn parse(input: &str) -> Vec<Machine> {
     input.lines().map(|line| line.parse().unwrap()).collect()
 }
 
+fn find_fewest_buttons(machine: &Machine) -> u64 {
+    let mut states_a: HashSet<State> = HashSet::new();
+    let mut states_b: HashSet<State> = HashSet::new();
+    let mut presses: u64 = 0;
+    let start: State = machine.required.iter().map(|_| false).collect();
+    states_a.insert(start);
+    loop {
+        presses += 1;
+        let (current, next) = if presses.is_multiple_of(2) {
+            (&mut states_b, &mut states_a)
+        } else {
+            (&mut states_a, &mut states_b)
+        };
+        for button in machine.buttons.iter() {
+            for state in current.iter() {
+                let new_state = button_press(state.clone(), button);
+                if new_state == machine.required {
+                    return presses;
+                }
+                next.insert(new_state);
+            }
+        }
+        current.clear();
+    }
+}
+
 pub struct Day10;
 
 impl AocSolution for Day10 {
     fn part1(&self, input: &str) -> String {
-        let machines = parse(input);
-        dbg!(machines);
-        "Not implemented".to_string()
+        parse(input)
+            .iter()
+            .map(find_fewest_buttons)
+            .sum::<u64>()
+            .to_string()
     }
 
     fn part2(&self, _input: &str) -> String {
@@ -59,6 +95,13 @@ mod tests {
     const EXAMPLE: &str = r"[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
 [...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
 [.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}";
+
+    #[test]
+    fn test_hash_set_of_vecs() {
+        let set: HashSet<State> = HashSet::from([vec![false, true]]);
+        assert!(set.contains(&vec![false, true]));
+        assert!(!set.contains(&vec![false, false]));
+    }
 
     #[test]
     fn test_part1_example() {
