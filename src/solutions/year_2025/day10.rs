@@ -5,7 +5,7 @@ use crate::AocSolution;
 
 type Indicator = Vec<bool>;
 type Button = Vec<usize>;
-type Joltage = Vec<u16>;
+type Joltage = DVector<f64>;
 
 #[derive(Debug)]
 struct Machine {
@@ -17,10 +17,6 @@ struct Machine {
 fn button_press_indicator(mut state: Indicator, button: &Button) -> Indicator {
     button.iter().for_each(|&i| state[i] = !state[i]);
     state
-}
-fn button_press_joltage(mut joltage: Joltage, button: &Button) -> Joltage {
-    button.iter().for_each(|&i| joltage[i] += 1);
-    joltage
 }
 
 impl FromStr for Machine {
@@ -38,8 +34,8 @@ impl FromStr for Machine {
         assert_eq!(joltage.next().unwrap(), '{');
         assert_eq!(joltage.next_back().unwrap(), '}');
         let joltage: String = joltage.collect();
-        let joltage = joltage.split(",").map(|s| s.parse().unwrap()).collect();
-
+        let joltage: Vec<_> = joltage.split(",").map(|s| s.parse().unwrap()).collect();
+        let joltage = DVector::from_vec(joltage);
         let buttons = parts
             .map(|s| {
                 let mut chars = s.chars();
@@ -90,11 +86,15 @@ fn find_fewest_buttons_indicator_lights(machine: &Machine) -> u64 {
 fn find_fewest_buttons_joltage(machine: &Machine) -> u64 {
     let nrows = machine.joltage.len();
     let ncols = machine.buttons.len();
-    let mut a = DMatrix::from_element(nrows, ncols, 0);
-    machine.buttons.iter().enumerate().for_each(|b|{
-        b.1.iter().for_each(|i|{a[i,b.0] += 1;});
+    let mut a = DMatrix::from_element(nrows, ncols, 0.0);
+    machine.buttons.iter().enumerate().for_each(|b| {
+        b.1.iter().for_each(|i| {
+            a[(*i, b.0)] += 1.0;
+        });
     });
-    0
+    let v = &machine.joltage;
+    let x = a.qr().solve(v).expect("Could not find solution");
+    x.iter().sum::<f64>().round() as u64
 }
 
 pub struct Day10;
