@@ -93,7 +93,11 @@ fn find_fewest_buttons_joltage(machine: &Machine) -> u64 {
         });
     });
     let v = &machine.joltage;
-    let x = a.qr().solve(v).expect("Could not find solution");
+    let x = a
+        .svd(true, true)
+        .solve(v, 1.0e-14)
+        .expect("Could not find solution");
+    println!("x vector: {:?}", x);
     x.iter().sum::<f64>().round() as u64
 }
 
