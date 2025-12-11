@@ -4,6 +4,7 @@ use crate::AocSolution;
 
 type Node = String;
 type Connections = HashMap<Node, HashSet<Node>>;
+
 fn parse(input: &str) -> Connections {
     input
         .lines()
@@ -15,8 +16,8 @@ fn parse(input: &str) -> Connections {
         })
         .collect()
 }
-fn count_paths(connections: &Connections) -> u64 {
-    let start: &Node = &"you".into();
+
+fn count_paths(connections: &Connections, start: &Node) -> u64 {
     let out_node: &Node = &"out".into();
     let mut state_a: HashMap<&Node, u64> = HashMap::new();
     let mut state_b: HashMap<&Node, u64> = HashMap::new();
@@ -52,16 +53,20 @@ fn count_paths(connections: &Connections) -> u64 {
     }
     out_paths
 }
+
 pub struct Day11;
 
 impl AocSolution for Day11 {
     fn part1(&self, input: &str) -> String {
         let connections = parse(input);
-        count_paths(&connections).to_string()
+        let start: &Node = &"you".into();
+        count_paths(&connections, start).to_string()
     }
 
-    fn part2(&self, _input: &str) -> String {
-        "Not implemented".to_string()
+    fn part2(&self, input: &str) -> String {
+        let connections = parse(input);
+        let start: &Node = &"svr".into();
+        count_paths(&connections, start).to_string()
     }
 }
 
@@ -80,6 +85,20 @@ ggg: out
 hhh: ccc fff iii
 iii: out";
 
+    const EXAMPLE_2: &str = r"svr: aaa bbb
+aaa: fft
+fft: ccc
+bbb: tty
+tty: ccc
+ccc: ddd eee
+ddd: hub
+hub: fff
+eee: dac
+dac: fff
+fff: ggg hhh
+ggg: out
+hhh: out";
+
     #[test]
     fn test_part1_example() {
         assert_eq!(Day11.part1(EXAMPLE), "5");
@@ -93,7 +112,7 @@ iii: out";
 
     #[test]
     fn test_part2_example() {
-        assert_eq!(Day11.part2(EXAMPLE), "REPLACE_WITH_PART2_EXAMPLE_RESULT");
+        assert_eq!(Day11.part2(EXAMPLE_2), "2");
     }
 
     #[test]
