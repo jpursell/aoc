@@ -85,6 +85,8 @@ fn shapes_fit(tree: &Tree, shapes: &[Shape]) -> bool {
     if tree_nelem < total_required {
         return false;
     }
+    let n_extra = tree_nelem - total_required;
+    dbg!(n_extra);
 
     true
 }
