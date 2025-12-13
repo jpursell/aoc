@@ -1,7 +1,5 @@
-use std::rc::Rc;
-
 use crate::AocSolution;
-use itertools::Itertools;
+use itertools::{iproduct, Itertools};
 use ndarray::prelude::*;
 
 const NPIECES: u8 = 6;
@@ -27,46 +25,59 @@ struct State {
     position: u8,
     rotation: u8,
 }
-struct Placer {
-    ended: bool,
-    flip: bool,
-    piece: u8,
-    position: u8,
-    rotation: u8,
-}
-impl Iterator for Placer {
-    type Item = State;
+// struct Placer {
+//     ended: bool,
+//     flip: bool,
+//     piece: u8,
+//     position: u8,
+//     rotation: u8,
+//     tree_size: u16,
+// }
+// impl Iterator for Placer {
+//     type Item = State;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.ended {
-            return None;
-        }
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.ended {
+//             return None;
+//         }
 
-        let state = State{flip:self.flip, piece: self.piece, position: self.position,, rotation: self.rotation};
+//         let state = State {
+//             flip: self.flip,
+//             piece: self.piece,
+//             position: self.position,
+//             rotation: self.rotation,
+//         };
 
-        // flip [false, true]
-        self.flip = !self.flip;
-        if self.flip {
-            return Some(state);
-        }
+//         // flip [false, true]
+//         self.flip = !self.flip;
+//         if self.flip {
+//             return Some(state);
+//         }
 
-        // piece: 0..NPIECES
-        self.piece += 1;
-        // TODO keep implementing iterator
+//         // piece: 0..NPIECES
+//         self.piece += 1;
+//         self.piece %= NPIECES;
+//         if self.piece > 0 {
+//             return Some(state);
+//         }
 
-        Some(state)
-    }
-}
-impl Placer {
-    fn new(locations: Vec<[u8; 2]>, pieces: Vec<u8>) -> Self {
-        // TODO
-        Placer {
-            locations,
-            pieces,
-            l,
-        }
-    }
-}
+//         // position: 0..tree_size
+
+//         Some(state)
+//     }
+// }
+// impl Placer {
+//     fn new(tree_size: u16) -> Self {
+//         Placer {
+//             tree_size,
+//             ended: false,
+//             flip: false,
+//             piece: 0,
+//             position: 0,
+//             rotation: 0,
+//         }
+//     }
+// }
 impl Puzzle {
     fn new(shapes: Vec<Shape>, trees: Vec<Tree>) -> Self {
         let shape_sizes: Vec<u8> = shapes
@@ -93,12 +104,11 @@ impl Puzzle {
             return false;
         }
         let n_extra = tree_nelem - total_required;
-        let mut stack = Vec::new();
         // TODO : going to have Vec<Placer> that is initialized once with len equal to num pieces
         // i.e max of about 50*6
         // They are iterators and they yield a state, but maybe they should yield the values for the next deep iterator?
         // I'm going to go with state for now.
-        // 
+        //
         // There will be an indicator as to how deep into the iterator stack we are
         //
         // There will be a gird of bool the same size as tree and when a piece is selected it will get updated
@@ -114,8 +124,21 @@ impl Puzzle {
         // - make sure it won't intersec an already place piece
         // position is flat location of upper left.
         // - not using too many of 1 piece
-        // 
-        dbg!(n_extra);
+        //
+        let flips = [false, true];
+        let pieces = 0..NPIECES;
+        let positions = 0..tree_nelem;
+        let rotations = 0..4;
+        let mut stack = Vec::new();
+        loop {
+            stack.push(iproduct!(
+                flips.iter(),
+                pieces.clone(),
+                positions.clone(),
+                rotations.clone()
+            ));
+            break;
+        }
 
         true
     }
