@@ -8,76 +8,100 @@ const NPIECES: u8 = 6;
 struct Shape {
     grid: Array2<bool>,
 }
+
 #[derive(Debug)]
 struct Tree {
     shape: [u8; 2],
     shape_counts: Vec<u8>,
 }
+
 #[derive(Debug)]
 struct Puzzle {
     shape_sizes: Vec<u8>,
     shapes: Vec<Shape>,
     trees: Vec<Tree>,
 }
+
+#[derive(Debug, PartialEq, Eq)]
 struct State {
     flip: bool,
     piece: u8,
-    position: u8,
+    position: u16,
     rotation: u8,
 }
-// struct Placer {
-//     ended: bool,
-//     flip: bool,
-//     piece: u8,
-//     position: u8,
-//     rotation: u8,
-//     tree_size: u16,
-// }
-// impl Iterator for Placer {
-//     type Item = State;
 
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if self.ended {
-//             return None;
-//         }
+#[derive(Debug, Clone, Copy)]
+struct Placer {
+    ended: bool,
+    flip: bool,
+    piece: u8,
+    position: u16,
+    rotation: u8,
+    tree_size: u16,
+}
+impl Iterator for Placer {
+    type Item = State;
 
-//         let state = State {
-//             flip: self.flip,
-//             piece: self.piece,
-//             position: self.position,
-//             rotation: self.rotation,
-//         };
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.ended {
+            return None;
+        }
 
-//         // flip [false, true]
-//         self.flip = !self.flip;
-//         if self.flip {
-//             return Some(state);
-//         }
+        let state = State {
+            flip: self.flip,
+            piece: self.piece,
+            position: self.position,
+            rotation: self.rotation,
+        };
 
-//         // piece: 0..NPIECES
-//         self.piece += 1;
-//         self.piece %= NPIECES;
-//         if self.piece > 0 {
-//             return Some(state);
-//         }
+        // flip [false, true]
+        self.flip = !self.flip;
+        if self.flip {
+            return Some(state);
+        }
 
-//         // position: 0..tree_size
+        // piece: 0..NPIECES
+        self.piece += 1;
+        self.piece %= NPIECES;
+        if self.piece > 0 {
+            return Some(state);
+        }
 
-//         Some(state)
-//     }
-// }
-// impl Placer {
-//     fn new(tree_size: u16) -> Self {
-//         Placer {
-//             tree_size,
-//             ended: false,
-//             flip: false,
-//             piece: 0,
-//             position: 0,
-//             rotation: 0,
-//         }
-//     }
-// }
+        // position: 0..tree_size
+        self.position += 1;
+        self.position %= self.tree_size;
+        if self.position > 0 {
+            return Some(state);
+        }
+
+        // rotation: 0..4
+        self.rotation += 1;
+        if self.rotation == 4 {
+            self.ended = true;
+        }
+
+        Some(state)
+    }
+}
+impl Placer {
+    fn new(tree_size: u16) -> Self {
+        Placer {
+            tree_size,
+            ended: false,
+            flip: false,
+            piece: 0,
+            position: 0,
+            rotation: 0,
+        }
+    }
+    fn reset(&mut self) {
+        self.ended = false;
+        self.flip = false;
+        self.piece = 0;
+        self.position = 0;
+        self.rotation = 0;
+    }
+}
 impl Puzzle {
     fn new(shapes: Vec<Shape>, trees: Vec<Tree>) -> Self {
         let shape_sizes: Vec<u8> = shapes
@@ -125,18 +149,9 @@ impl Puzzle {
         // position is flat location of upper left.
         // - not using too many of 1 piece
         //
-        let flips = [false, true];
-        let pieces = 0..NPIECES;
-        let positions = 0..tree_nelem;
-        let rotations = 0..4;
-        let mut stack = Vec::new();
+        let mut stack =
+            vec![Placer::new(tree_nelem); tree.shape_counts.iter().map(|&c| c as usize).product()];
         loop {
-            stack.push(iproduct!(
-                flips.iter(),
-                pieces.clone(),
-                positions.clone(),
-                rotations.clone()
-            ));
             break;
         }
 
@@ -254,6 +269,43 @@ mod tests {
 4x4: 0 0 0 0 2 0
 12x5: 1 0 1 0 2 2
 12x5: 1 0 1 0 3 2";
+
+    #[test]
+    fn test_placer() {
+        let tree_size = 3;
+        let mut placer = Placer::new(tree_size);
+        let placer_vec: Vec<State> = (&mut placer).collect();
+        placer.reset();
+        let placer_vec_2: Vec<State> = placer.collect();
+        let product_vec: Vec<State> =
+            iproduct!(0..4, 0..tree_size, 0..NPIECES, [false, true].iter())
+                .map(|(rotation, position, piece, &flip)| State {
+                    flip,
+                    piece,
+                    position,
+                    rotation,
+                })
+                .collect();
+        if placer_vec.len() != product_vec.len() {
+            for i in 0..placer_vec.len().max(product_vec.len()) {
+                eprintln!(
+                    "[{}] equal: {} placer: {:?}, product: {:?}",
+                    i,
+                    placer_vec.get(i) == product_vec.get(i),
+                    placer_vec.get(i),
+                    product_vec.get(i)
+                );
+            }
+        }
+        assert_eq!(placer_vec.len(), product_vec.len());
+        assert_eq!(placer_vec_2.len(), product_vec.len());
+        for (placer_state, product_state) in placer_vec.iter().zip(product_vec.iter()) {
+            assert_eq!(placer_state, product_state);
+        }
+        for (placer_state, product_state) in placer_vec_2.iter().zip(product_vec.iter()) {
+            assert_eq!(placer_state, product_state);
+        }
+    }
 
     #[test]
     fn test_part1_example() {
