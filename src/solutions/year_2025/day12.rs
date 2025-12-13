@@ -24,7 +24,7 @@ struct State {
     rotation: u8,
 }
 struct Placer {
-    locations: Vec<[u8; 2]>,
+    // locations: Vec<[u8; 2]>,
     pieces: Vec<u8>,
     location: u8,
     piece: u8,
