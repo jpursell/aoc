@@ -1,6 +1,10 @@
+use std::rc::Rc;
+
 use crate::AocSolution;
-use itertools::{iproduct, Itertools, Product};
+use itertools::Itertools;
 use ndarray::prelude::*;
+
+const NPIECES: u8 = 6;
 
 #[derive(Debug)]
 struct Shape {
@@ -13,29 +17,44 @@ struct Tree {
 }
 #[derive(Debug)]
 struct Puzzle {
+    shape_sizes: Vec<u8>,
     shapes: Vec<Shape>,
     trees: Vec<Tree>,
-    shape_sizes: Vec<u8>,
 }
 struct State {
     flip: bool,
     piece: u8,
-    position: [u8; 2],
+    position: u8,
     rotation: u8,
 }
 struct Placer {
-    // locations: Vec<[u8; 2]>,
-    pieces: Vec<u8>,
-    location: u8,
-    piece: u8,
-    rotation: u8,
+    ended: bool,
     flip: bool,
+    piece: u8,
+    position: u8,
+    rotation: u8,
 }
 impl Iterator for Placer {
     type Item = State;
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        if self.ended {
+            return None;
+        }
+
+        let state = State{flip:self.flip, piece: self.piece, position: self.position,, rotation: self.rotation};
+
+        // flip [false, true]
+        self.flip = !self.flip;
+        if self.flip {
+            return Some(state);
+        }
+
+        // piece: 0..NPIECES
+        self.piece += 1;
+        // TODO keep implementing iterator
+
+        Some(state)
     }
 }
 impl Placer {
@@ -75,7 +94,27 @@ impl Puzzle {
         }
         let n_extra = tree_nelem - total_required;
         let mut stack = Vec::new();
-        loop {}
+        // TODO : going to have Vec<Placer> that is initialized once with len equal to num pieces
+        // i.e max of about 50*6
+        // They are iterators and they yield a state, but maybe they should yield the values for the next deep iterator?
+        // I'm going to go with state for now.
+        // 
+        // There will be an indicator as to how deep into the iterator stack we are
+        //
+        // There will be a gird of bool the same size as tree and when a piece is selected it will get updated
+        //
+        // Iterator will return None when all posibilities are exausted
+        //
+        // State must be checked. If valid, move stack pointer over and keep going, else get another state from iterator.
+        //
+        // To check a new state
+        // - make sure its location is not off the board
+        // - make new piece is next to an existing piece with 4-connectivity? I'm not sure this is a good idea
+        // What if last piece only fits in 8-connectivity?
+        // - make sure it won't intersec an already place piece
+        // position is flat location of upper left.
+        // - not using too many of 1 piece
+        // 
         dbg!(n_extra);
 
         true
