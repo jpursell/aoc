@@ -1,5 +1,5 @@
 use crate::AocSolution;
-use itertools::Itertools;
+use itertools::{iproduct, Itertools, Product};
 use ndarray::prelude::*;
 
 #[derive(Debug)]
@@ -15,6 +15,78 @@ struct Tree {
 struct Puzzle {
     shapes: Vec<Shape>,
     trees: Vec<Tree>,
+    shape_sizes: Vec<u8>,
+}
+struct State {
+    flip: bool,
+    piece: u8,
+    position: [u8; 2],
+    rotation: u8,
+}
+struct Placer {
+    locations: Vec<[u8; 2]>,
+    pieces: Vec<u8>,
+    location: u8,
+    piece: u8,
+    rotation: u8,
+    flip: bool,
+}
+impl Iterator for Placer {
+    type Item = State;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        todo!()
+    }
+}
+impl Placer {
+    fn new(locations: Vec<[u8; 2]>, pieces: Vec<u8>) -> Self {
+        // TODO
+        Placer {
+            locations,
+            pieces,
+            l,
+        }
+    }
+}
+impl Puzzle {
+    fn new(shapes: Vec<Shape>, trees: Vec<Tree>) -> Self {
+        let shape_sizes: Vec<u8> = shapes
+            .iter()
+            .map(|s| s.grid.iter().map(|&x| if x { 1 } else { 0 }).sum::<u8>())
+            .collect();
+
+        Puzzle {
+            shapes,
+            trees,
+            shape_sizes,
+        }
+    }
+    fn shapes_fit(&self, itree: usize) -> bool {
+        let tree = &self.trees[itree];
+        let total_required = self
+            .shape_sizes
+            .iter()
+            .zip(tree.shape_counts.iter())
+            .map(|(&shape_size, &nshapes)| shape_size as u16 * nshapes as u16)
+            .sum::<u16>();
+        let tree_nelem: u16 = tree.shape.iter().map(|&x| x as u16).product();
+        if tree_nelem < total_required {
+            return false;
+        }
+        let n_extra = tree_nelem - total_required;
+        let mut stack = Vec::new();
+        loop {}
+        dbg!(n_extra);
+
+        true
+    }
+    fn part1(&self) -> String {
+        (0..self.trees.len())
+            .into_iter()
+            .map(|itree| if self.shapes_fit(itree) { 1 } else { 0 })
+            .sum::<u64>()
+            .to_string()
+    }
 }
 fn parse(input: &str) -> Puzzle {
     let mut lines = input.lines();
@@ -68,39 +140,14 @@ fn parse(input: &str) -> Puzzle {
             }
         })
         .collect();
-    Puzzle { shapes, trees }
-}
-
-fn shapes_fit(tree: &Tree, shapes: &[Shape]) -> bool {
-    let shape_sizes: Vec<u8> = shapes
-        .iter()
-        .map(|s| s.grid.iter().map(|&x| if x { 1 } else { 0 }).sum::<u8>())
-        .collect();
-    let total_required = shape_sizes
-        .iter()
-        .zip(tree.shape_counts.iter())
-        .map(|(&shape_size, &nshapes)| shape_size as u16 * nshapes as u16)
-        .sum::<u16>();
-    let tree_nelem: u16 = tree.shape.iter().map(|&x| x as u16).product();
-    if tree_nelem < total_required {
-        return false;
-    }
-    let n_extra = tree_nelem - total_required;
-    dbg!(n_extra);
-
-    true
+    Puzzle::new(shapes, trees)
 }
 
 pub struct Day12;
 
 impl AocSolution for Day12 {
     fn part1(&self, input: &str) -> String {
-        let Puzzle { shapes, trees } = parse(input);
-        trees
-            .iter()
-            .map(|tree| if shapes_fit(tree, &shapes) { 1 } else { 0 })
-            .sum::<u64>()
-            .to_string()
+        parse(input).part1()
     }
 
     fn part2(&self, _input: &str) -> String {
