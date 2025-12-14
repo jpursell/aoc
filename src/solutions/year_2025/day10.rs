@@ -1,11 +1,11 @@
-use nalgebra::*;
+use good_lp::{constraint, default_solver, variables, Solution, SolverModel};
 use std::{collections::HashSet, str::FromStr};
 
 use crate::AocSolution;
 
 type Indicator = Vec<bool>;
 type Button = Vec<usize>;
-type Joltage = DVector<f64>;
+type Joltage = Vec<u8>;
 
 #[derive(Debug)]
 struct Machine {
@@ -35,7 +35,6 @@ impl FromStr for Machine {
         assert_eq!(joltage.next_back().unwrap(), '}');
         let joltage: String = joltage.collect();
         let joltage: Vec<_> = joltage.split(",").map(|s| s.parse().unwrap()).collect();
-        let joltage = DVector::from_vec(joltage);
         let buttons = parts
             .map(|s| {
                 let mut chars = s.chars();
@@ -84,21 +83,28 @@ fn find_fewest_buttons_indicator_lights(machine: &Machine) -> u64 {
 }
 
 fn find_fewest_buttons_joltage(machine: &Machine) -> u64 {
-    let nrows = machine.joltage.len();
-    let ncols = machine.buttons.len();
-    let mut a = DMatrix::from_element(nrows, ncols, 0.0);
-    machine.buttons.iter().enumerate().for_each(|b| {
-        b.1.iter().for_each(|i| {
-            a[(*i, b.0)] += 1.0;
-        });
-    });
-    let v = &machine.joltage;
-    let x = a
-        .svd(true, true)
-        .solve(v, 1.0e-14)
-        .expect("Could not find solution");
-    println!("x vector: {:?}", x);
-    x.iter().sum::<f64>().round() as u64
+    // machine
+    // req    buttons                         joltage
+    // [.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+    //
+    // the variables would be how much of each button
+    //
+    // the output is the sum of the button pushes
+    let nbuttons = machine.buttons.len();
+    variables! {vars: 0 <= x[nbuttons] (integer);}
+    let solution = vars
+        .minimise({
+            if x.len() == 6 {
+                x[0] + x[1] + x[2] + x[3] + x[4] + x[5]
+            } else {
+                panic!()
+            }
+        })
+        .using(default_solver)
+        .with(constraint!(x[4] + x[5] == machine.joltage[0]))
+        .solve()
+        .unwrap();
+    x.iter().map(|&x| solution.value(x)).sum::<f64>().round() as u64
 }
 
 pub struct Day10;
