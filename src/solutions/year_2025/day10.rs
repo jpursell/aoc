@@ -1,5 +1,8 @@
-use good_lp::{constraint, default_solver, variables, Solution, SolverModel};
-use std::{collections::HashSet, str::FromStr};
+use itertools::Itertools;
+use std::{
+    collections::{BTreeMap, HashSet},
+    str::FromStr,
+};
 
 use crate::AocSolution;
 
@@ -82,7 +85,7 @@ fn find_fewest_buttons_indicator_lights(machine: &Machine) -> u64 {
     }
 }
 
-fn find_fewest_buttons_joltage(machine: &Machine) -> u64 {
+fn find_fewest_buttons_joltage(buttons: &[Button], joltage: Joltage) -> u64 {
     // machine
     // req    buttons                         joltage
     // [.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
@@ -90,21 +93,37 @@ fn find_fewest_buttons_joltage(machine: &Machine) -> u64 {
     // the variables would be how much of each button
     //
     // the output is the sum of the button pushes
-    let nbuttons = machine.buttons.len();
-    variables! {vars: 0 <= x[nbuttons] (integer);}
-    let solution = vars
-        .minimise({
-            if x.len() == 6 {
-                x[0] + x[1] + x[2] + x[3] + x[4] + x[5]
-            } else {
-                panic!()
+    0
+}
+
+fn map_button_combinations(buttons: &[Button]) -> BTreeMap<Vec<bool>, BTreeMap<Vec<u8>, u8>> {
+    let max_index: u8 = buttons
+        .iter()
+        .map(|b| b.iter().copied().max().unwrap())
+        .max()
+        .unwrap() as u8
+        + 1;
+    let mut out = BTreeMap::new();
+    for npressed in 1..=buttons.len() {
+        for combo in buttons.iter().combinations(npressed) {
+            let mut result: Vec<u8> = vec![0; max_index as usize];
+            for button in combo {
+                for index in button {
+                    result[*index] += 1;
+                }
             }
-        })
-        .using(default_solver)
-        .with(constraint!(x[4] + x[5] == machine.joltage[0]))
-        .solve()
-        .unwrap();
-    x.iter().map(|&x| solution.value(x)).sum::<f64>().round() as u64
+            let parity: Vec<bool> = result.iter().map(|&x| x % 2 == 0).collect();
+            let npressed = npressed as u8;
+            out.entry(parity)
+                .and_modify(|v: &mut BTreeMap<Vec<u8>, u8>| {
+                    v.entry(result.clone())
+                        .and_modify(|x: &mut u8| *x = npressed.min(*x))
+                        .or_insert(npressed);
+                })
+                .or_insert(BTreeMap::from([(result, npressed)]));
+        }
+    }
+    out
 }
 
 pub struct Day10;
@@ -118,12 +137,13 @@ impl AocSolution for Day10 {
             .to_string()
     }
 
-    fn part2(&self, input: &str) -> String {
-        parse(input)
-            .iter()
-            .map(find_fewest_buttons_joltage)
-            .sum::<u64>()
-            .to_string()
+    fn part2(&self, _input: &str) -> String {
+        // parse(input)
+        //     .iter()
+        //     .map(find_fewest_buttons_joltage)
+        //     .sum::<u64>()
+        //     .to_string()
+        "not implemented".into()
     }
 }
 
@@ -151,6 +171,13 @@ mod tests {
     fn test_part1_full() {
         let input = crate::get_input_for_day(2025, 10).expect("Failed to get input");
         assert_eq!(Day10.part1(&input), "419");
+    }
+    #[test]
+    fn test_map_button_combinations() {
+        let machines = parse(EXAMPLE);
+        dbg!(&machines[0].buttons);
+        let map = map_button_combinations(&machines[0].buttons);
+        dbg!(map);
     }
 
     #[test]
