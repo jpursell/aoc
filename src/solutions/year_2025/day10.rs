@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use memoize::memoize;
 use std::{
     collections::{BTreeMap, HashSet},
     str::FromStr,
@@ -85,18 +86,8 @@ fn find_fewest_buttons_indicator_lights(machine: &Machine) -> u64 {
     }
 }
 
-fn find_fewest_buttons_joltage(buttons: &[Button], joltage: Joltage) -> u64 {
-    // machine
-    // req    buttons                         joltage
-    // [.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
-    //
-    // the variables would be how much of each button
-    //
-    // the output is the sum of the button pushes
-    0
-}
-
-fn map_button_combinations(buttons: &[Button]) -> BTreeMap<Vec<bool>, BTreeMap<Vec<u8>, u8>> {
+type ButtonCombos = BTreeMap<Vec<bool>, BTreeMap<Vec<u8>, u8>>;
+fn map_button_combinations(buttons: &[Button]) -> ButtonCombos {
     let max_index: u8 = buttons
         .iter()
         .map(|b| b.iter().copied().max().unwrap())
@@ -126,6 +117,8 @@ fn map_button_combinations(buttons: &[Button]) -> BTreeMap<Vec<bool>, BTreeMap<V
     out
 }
 
+const LARGE: u64 = 1_000_000;
+
 pub struct Day10;
 
 impl AocSolution for Day10 {
@@ -137,13 +130,38 @@ impl AocSolution for Day10 {
             .to_string()
     }
 
-    fn part2(&self, _input: &str) -> String {
-        // parse(input)
-        //     .iter()
-        //     .map(find_fewest_buttons_joltage)
-        //     .sum::<u64>()
-        //     .to_string()
-        "not implemented".into()
+    fn part2(&self, input: &str) -> String {
+        parse(input)
+            .iter()
+            .map(|m| {
+                let combos = map_button_combinations(&m.buttons);
+                #[memoize]
+                let find_fewest_buttons_joltage |joltage: Joltage| -> u64 {
+                    if joltage.iter().map(|&j| j as u64).sum::<u64>() == 0 {
+                        return 0;
+                    }
+                    let parity: Vec<bool> = joltage.iter().map(|&x| x % 2 == 0).collect();
+                    // find combos that work with our parity
+                    if !combos.contains_key(&parity) {
+                        return LARGE;
+                    }
+                    combos[&parity]
+                        .iter()
+                        .map(|(result, &presses)| {
+                            let new_joltage: Joltage = joltage
+                                .iter()
+                                .zip(result.iter())
+                                .map(|(&j, &r)| (j - r) / 2)
+                                .collect();
+                            find_fewest_buttons_joltage(combos, new_joltage) * 2 + presses as u64
+                        })
+                        .min()
+                        .unwrap()
+                };
+                find_fewest_buttons_joltage(m.joltage.clone())
+            })
+            .sum::<u64>()
+            .to_string()
     }
 }
 
