@@ -8,7 +8,7 @@ use crate::AocSolution;
 
 type Indicator = Vec<bool>;
 type Button = Vec<usize>;
-type Joltage = Vec<u8>;
+type Joltage = Vec<u16>;
 
 #[derive(Debug)]
 struct Machine {
@@ -85,29 +85,29 @@ fn find_fewest_buttons_indicator_lights(machine: &Machine) -> u64 {
     }
 }
 
-type ButtonCombos = BTreeMap<Vec<bool>, BTreeMap<Vec<u8>, u8>>;
+type ButtonCombos = BTreeMap<Vec<bool>, BTreeMap<Vec<u16>, u16>>;
 fn map_button_combinations(buttons: &[Button]) -> ButtonCombos {
-    let max_index: u8 = buttons
+    let max_index: u16 = buttons
         .iter()
         .map(|b| b.iter().copied().max().unwrap())
         .max()
-        .unwrap() as u8
+        .unwrap() as u16
         + 1;
     let mut out = BTreeMap::new();
     for npressed in 1..=buttons.len() {
         for combo in buttons.iter().combinations(npressed) {
-            let mut result: Vec<u8> = vec![0; max_index as usize];
+            let mut result: Vec<u16> = vec![0; max_index as usize];
             for button in combo {
                 for index in button {
                     result[*index] += 1;
                 }
             }
             let parity: Vec<bool> = result.iter().map(|&x| x % 2 == 0).collect();
-            let npressed = npressed as u8;
+            let npressed = npressed as u16;
             out.entry(parity)
-                .and_modify(|v: &mut BTreeMap<Vec<u8>, u8>| {
+                .and_modify(|v: &mut BTreeMap<Vec<u16>, u16>| {
                     v.entry(result.clone())
-                        .and_modify(|x: &mut u8| *x = npressed.min(*x))
+                        .and_modify(|x: &mut u16| *x = npressed.min(*x))
                         .or_insert(npressed);
                 })
                 .or_insert(BTreeMap::from([(result, npressed)]));
@@ -118,15 +118,15 @@ fn map_button_combinations(buttons: &[Button]) -> ButtonCombos {
 
 const LARGE: u64 = 1_000_000;
 
-fn find_fewest_buttons_joltage<'a>(
-    joltage: &'a Joltage,
+fn find_fewest_buttons_joltage(
+    joltage: &Joltage,
     combos: &ButtonCombos,
-    cache: &mut BTreeMap<&'a Joltage, u64>,
+    cache: &mut BTreeMap<Joltage, u64>,
 ) -> u64 {
     if joltage.iter().map(|&j| j as u64).sum::<u64>() == 0 {
         return 0;
     }
-    if let Some(&cached_value) = cache.get(&joltage) {
+    if let Some(&cached_value) = cache.get(joltage) {
         return cached_value;
     }
     let parity: Vec<bool> = joltage.iter().map(|&x| x % 2 == 0).collect();
@@ -134,7 +134,7 @@ fn find_fewest_buttons_joltage<'a>(
     if !combos.contains_key(&parity) {
         return LARGE;
     }
-    let search_values: Vec<(Joltage, u8)> = combos[&parity]
+    let search_values: Vec<(Joltage, u16)> = combos[&parity]
         .iter()
         .map(|(result, &presses)| {
             let new_joltage: Joltage = joltage
@@ -149,11 +149,11 @@ fn find_fewest_buttons_joltage<'a>(
         .iter()
         .map(|(new_joltage, presses)| {
             let presses = *presses as u64;
-            find_fewest_buttons_joltage(new_joltage, combos, cache) * 2 + presses as u64
+            find_fewest_buttons_joltage(new_joltage, combos, cache) * 2 + presses
         })
         .min()
         .unwrap();
-    cache.insert(joltage, value);
+    cache.insert(joltage.clone(), value);
     value
 }
 
@@ -174,7 +174,7 @@ impl AocSolution for Day10 {
             .map(|m| {
                 let combos = map_button_combinations(&m.buttons);
                 let mut cache = BTreeMap::new();
-                find_fewest_buttons_joltage(m.joltage.clone(), &combos, &mut cache)
+                find_fewest_buttons_joltage(&m.joltage, &combos, &mut cache)
             })
             .sum::<u64>()
             .to_string()
