@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use memoize::memoize;
 use std::{
     collections::{BTreeMap, HashSet},
     str::FromStr,
@@ -119,6 +118,45 @@ fn map_button_combinations(buttons: &[Button]) -> ButtonCombos {
 
 const LARGE: u64 = 1_000_000;
 
+fn find_fewest_buttons_joltage<'a>(
+    joltage: &'a Joltage,
+    combos: &ButtonCombos,
+    cache: &mut BTreeMap<&'a Joltage, u64>,
+) -> u64 {
+    if joltage.iter().map(|&j| j as u64).sum::<u64>() == 0 {
+        return 0;
+    }
+    if let Some(&cached_value) = cache.get(&joltage) {
+        return cached_value;
+    }
+    let parity: Vec<bool> = joltage.iter().map(|&x| x % 2 == 0).collect();
+    // find combos that work with our parity
+    if !combos.contains_key(&parity) {
+        return LARGE;
+    }
+    let search_values: Vec<(Joltage, u8)> = combos[&parity]
+        .iter()
+        .map(|(result, &presses)| {
+            let new_joltage: Joltage = joltage
+                .iter()
+                .zip(result.iter())
+                .map(|(&j, &r)| (j - r) / 2)
+                .collect();
+            (new_joltage, presses)
+        })
+        .collect();
+    let value = search_values
+        .iter()
+        .map(|(new_joltage, presses)| {
+            let presses = *presses as u64;
+            find_fewest_buttons_joltage(new_joltage, combos, cache) * 2 + presses as u64
+        })
+        .min()
+        .unwrap();
+    cache.insert(joltage, value);
+    value
+}
+
 pub struct Day10;
 
 impl AocSolution for Day10 {
@@ -135,30 +173,8 @@ impl AocSolution for Day10 {
             .iter()
             .map(|m| {
                 let combos = map_button_combinations(&m.buttons);
-                #[memoize]
-                let find_fewest_buttons_joltage |joltage: Joltage| -> u64 {
-                    if joltage.iter().map(|&j| j as u64).sum::<u64>() == 0 {
-                        return 0;
-                    }
-                    let parity: Vec<bool> = joltage.iter().map(|&x| x % 2 == 0).collect();
-                    // find combos that work with our parity
-                    if !combos.contains_key(&parity) {
-                        return LARGE;
-                    }
-                    combos[&parity]
-                        .iter()
-                        .map(|(result, &presses)| {
-                            let new_joltage: Joltage = joltage
-                                .iter()
-                                .zip(result.iter())
-                                .map(|(&j, &r)| (j - r) / 2)
-                                .collect();
-                            find_fewest_buttons_joltage(combos, new_joltage) * 2 + presses as u64
-                        })
-                        .min()
-                        .unwrap()
-                };
-                find_fewest_buttons_joltage(m.joltage.clone())
+                let mut cache = BTreeMap::new();
+                find_fewest_buttons_joltage(m.joltage.clone(), &combos, &mut cache)
             })
             .sum::<u64>()
             .to_string()
