@@ -218,6 +218,16 @@ mod tests {
     }
 
     #[test]
+    fn test_part2_basic_solve() {
+        let joltage: Joltage = vec![2, 2, 2];
+        let buttons: [Button; 3] = [vec![1, 2], vec![0, 2], vec![0, 1]];
+        let combos = map_button_combinations(&buttons);
+        let mut cache = BTreeMap::new();
+        let presses: u64 = find_fewest_buttons_joltage(&joltage, &combos, &mut cache);
+        assert_eq!(presses, 3);
+    }
+
+    #[test]
     fn test_part2_example() {
         assert_eq!(Day10.part2(EXAMPLE), "33");
     }
