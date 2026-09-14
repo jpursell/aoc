@@ -1,5 +1,5 @@
 use crate::AocSolution;
-use itertools::{iproduct, Itertools};
+use itertools::Itertools;
 use ndarray::prelude::*;
 
 const NPIECES: u8 = 6;
@@ -18,7 +18,7 @@ struct Tree {
 #[derive(Debug)]
 struct Puzzle {
     shape_sizes: Vec<u8>,
-    shapes: Vec<Shape>,
+    _shapes: Vec<Shape>,
     trees: Vec<Tree>,
 }
 
@@ -94,7 +94,7 @@ impl Placer {
             rotation: 0,
         }
     }
-    fn reset(&mut self) {
+    fn _reset(&mut self) {
         self.ended = false;
         self.flip = false;
         self.piece = 0;
@@ -103,14 +103,14 @@ impl Placer {
     }
 }
 impl Puzzle {
-    fn new(shapes: Vec<Shape>, trees: Vec<Tree>) -> Self {
-        let shape_sizes: Vec<u8> = shapes
+    fn new(_shapes: Vec<Shape>, trees: Vec<Tree>) -> Self {
+        let shape_sizes: Vec<u8> = _shapes
             .iter()
             .map(|s| s.grid.iter().map(|&x| if x { 1 } else { 0 }).sum::<u8>())
             .collect();
 
         Puzzle {
-            shapes,
+            _shapes,
             trees,
             shape_sizes,
         }
@@ -127,7 +127,7 @@ impl Puzzle {
         if tree_nelem < total_required {
             return false;
         }
-        let n_extra = tree_nelem - total_required;
+        // let n_extra = tree_nelem - total_required;
         // TODO : going to have Vec<Placer> that is initialized once with len equal to num pieces
         // i.e max of about 50*6
         // They are iterators and they yield a state, but maybe they should yield the values for the next deep iterator?
@@ -149,11 +149,11 @@ impl Puzzle {
         // position is flat location of upper left.
         // - not using too many of 1 piece
         //
-        let mut stack =
-            vec![Placer::new(tree_nelem); tree.shape_counts.iter().map(|&c| c as usize).product()];
-        loop {
-            break;
-        }
+        // let mut stack =
+        vec![Placer::new(tree_nelem); tree.shape_counts.iter().map(|&c| c as usize).product()];
+        // loop {
+        //     break;
+        // }
 
         true
     }
@@ -234,6 +234,8 @@ impl AocSolution for Day12 {
 
 #[cfg(test)]
 mod tests {
+    use itertools::iproduct;
+
     use super::*;
 
     const EXAMPLE: &str = r"0:
@@ -275,7 +277,7 @@ mod tests {
         let tree_size = 3;
         let mut placer = Placer::new(tree_size);
         let placer_vec: Vec<State> = (&mut placer).collect();
-        placer.reset();
+        placer._reset();
         let placer_vec_2: Vec<State> = placer.collect();
         let product_vec: Vec<State> =
             iproduct!(0..4, 0..tree_size, 0..NPIECES, [false, true].iter())
