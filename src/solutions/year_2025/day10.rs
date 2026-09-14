@@ -135,27 +135,53 @@ fn find_fewest_buttons_joltage(
         return LARGE;
     }
 
-    // TODO add special case for all even parity
-    // let new_joltage: Joltage = joltage
-    //     .iter()
-    //     .zip(result.iter())
-    //     .map(|(&j, &r)| (j - r) / 2)
-    //     .collect();
+    // special case for all even parity
+    let special_val: u64 = if parity.iter().all(|x| !x) {
+        combos
+            .values()
+            .map(|pmap| {
+                pmap.iter()
+                    .map(|(result, presses)| {
+                        if joltage.iter().zip(result.iter()).any(|(&j, &r)| j < 2 * r) {
+                            LARGE
+                        } else {
+                            let new_joltage: Joltage = joltage
+                                .iter()
+                                .zip(result.iter())
+                                .map(|(j, r)| j - r * 2)
+                                .collect();
+                            let presses = *presses as u64;
+                            find_fewest_buttons_joltage(&new_joltage, combos, cache) + presses * 2
+                        }
+                    })
+                    .min()
+                    .unwrap()
+            })
+            .min()
+            .unwrap()
+    } else {
+        LARGE
+    };
 
     // Also search single application of parity
     let value = combos[&parity]
         .iter()
         .map(|(result, presses)| {
-            let new_joltage: Joltage = joltage
-                .iter()
-                .zip(result.iter())
-                .map(|(j, r)| j - r)
-                .collect();
-            let presses = *presses as u64;
-            find_fewest_buttons_joltage(&new_joltage, combos, cache) + presses
+            if joltage.iter().zip(result.iter()).any(|(j, r)| j < r) {
+                LARGE
+            } else {
+                let new_joltage: Joltage = joltage
+                    .iter()
+                    .zip(result.iter())
+                    .map(|(j, r)| j - r)
+                    .collect();
+                let presses = *presses as u64;
+                find_fewest_buttons_joltage(&new_joltage, combos, cache) + presses
+            }
         })
         .min()
-        .unwrap();
+        .unwrap()
+        .min(special_val);
     cache.insert(joltage.clone(), value);
     value
 }
