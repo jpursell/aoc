@@ -134,22 +134,25 @@ fn find_fewest_buttons_joltage(
     if !combos.contains_key(&parity) {
         return LARGE;
     }
-    let search_values: Vec<(Joltage, u16)> = combos[&parity]
+
+    // TODO add special case for all even parity
+    // let new_joltage: Joltage = joltage
+    //     .iter()
+    //     .zip(result.iter())
+    //     .map(|(&j, &r)| (j - r) / 2)
+    //     .collect();
+
+    // Also search single application of parity
+    let value = combos[&parity]
         .iter()
-        .map(|(result, &presses)| {
+        .map(|(result, presses)| {
             let new_joltage: Joltage = joltage
                 .iter()
                 .zip(result.iter())
-                .map(|(&j, &r)| (j - r) / 2)
+                .map(|(j, r)| j - r)
                 .collect();
-            (new_joltage, presses)
-        })
-        .collect();
-    let value = search_values
-        .iter()
-        .map(|(new_joltage, presses)| {
             let presses = *presses as u64;
-            find_fewest_buttons_joltage(new_joltage, combos, cache) * 2 + presses
+            find_fewest_buttons_joltage(&new_joltage, combos, cache) + presses
         })
         .min()
         .unwrap();
