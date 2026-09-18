@@ -148,7 +148,11 @@ fn find_fewest_buttons_joltage(
                     let new_joltage: Joltage = joltage
                         .iter()
                         .zip(result.iter())
-                        .map(|(j, r)| (j - r) / 2)
+                        .map(|(j, r)| {
+                            let d = j - r;
+                            assert_eq!(d % 2, 0);
+                            d / 2
+                        })
                         .collect();
                     dbg!(&joltage);
                     dbg!(&parity);
@@ -189,6 +193,7 @@ impl AocSolution for Day10 {
             })
             .map(|m| {
                 let combos = map_button_combinations(&m.buttons);
+                dbg!(&combos);
                 let mut cache = BTreeMap::new();
                 find_fewest_buttons_joltage(&m.joltage, &combos, &mut cache)
             })
