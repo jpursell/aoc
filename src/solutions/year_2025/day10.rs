@@ -1,13 +1,13 @@
 use itertools::Itertools;
 use std::{
-    collections::{BTreeMap, BTreeSet, HashSet},
+    collections::{BTreeMap, HashSet},
     str::FromStr,
     time::Instant,
 };
 
 use crate::AocSolution;
 
-type Indicator = Vec<bool>;
+type Indicator = Vec<u16>;
 type Button = Vec<usize>;
 type Joltage = Vec<u16>;
 
@@ -19,7 +19,7 @@ struct Machine {
 }
 
 fn button_press_indicator(mut state: Indicator, button: &Button) -> Indicator {
-    button.iter().for_each(|&i| state[i] = !state[i]);
+    button.iter().for_each(|&i| state[i] = (state[i] + 1) % 2);
     state
 }
 
@@ -32,7 +32,7 @@ impl FromStr for Machine {
         let mut required = parts.next().unwrap().chars();
         assert_eq!(required.next().unwrap(), '[');
         assert_eq!(required.next_back().unwrap(), ']');
-        let required = required.map(|c| c == '#').collect();
+        let required = required.map(|c| if c == '#' { 1 } else { 0 }).collect();
 
         let mut joltage = parts.next_back().unwrap().chars();
         assert_eq!(joltage.next().unwrap(), '{');
@@ -64,7 +64,7 @@ fn find_fewest_buttons_indicator_lights(machine: &Machine) -> u64 {
     let mut states_a: HashSet<Indicator> = HashSet::new();
     let mut states_b: HashSet<Indicator> = HashSet::new();
     let mut presses: u64 = 0;
-    let start: Indicator = machine.required.iter().map(|_| false).collect();
+    let start: Indicator = machine.required.iter().map(|_| 0).collect();
     states_a.insert(start);
     loop {
         presses += 1;
@@ -87,7 +87,7 @@ fn find_fewest_buttons_indicator_lights(machine: &Machine) -> u64 {
 }
 
 fn joltage_to_parity(joltage: &Joltage) -> Indicator {
-    joltage.iter().map(|&x| x % 2 == 0).collect()
+    joltage.iter().map(|&x| x % 2).collect()
 }
 
 type ButtonCombos = BTreeMap<Indicator, BTreeMap<Joltage, u16>>;
@@ -123,91 +123,20 @@ fn map_button_combinations(buttons: &[Button]) -> ButtonCombos {
 
 const LARGE: u64 = 1_000_000;
 
-// TODO fix this and make bredth first
 fn find_fewest_buttons_joltage(
     joltage: &Joltage,
     combos: &ButtonCombos,
     cache: &mut BTreeMap<Joltage, u64>,
-    level: usize,
 ) -> u64 {
-    // TODO: working on this function
-    // Thinking we will be keeping track of these maps from iteration to iteration
-    // I think we might also need a set of places we have searched?
-    // Will think this over more
-    let mut state_a: BTreeMap<Joltage, u64> = BTreeMap::new();
-    let mut state_b: BTreeMap<Joltage, u64> = BTreeMap::new();
-    let mut iterations: u32 = 0;
-
-    state_a.insert((joltage.clone(), 0));
-    loop {
-        iterations += 1;
-        let (current_state, next_state) = if iterations % 0 == 1 {
-            (&state_a, &mut state_b)
-        } else {
-            (&state_b, &mut state_a)
-        };
-        next_state.clear();
-        current_state.iter().for_each(|(joltage, presses)| {
-            // TODO
-        });
-    }
-}
-
-fn find_fewest_buttons_single_joltage(
-    joltage: &Joltage,
-    combos: &ButtonCombos,
-    cache: &mut BTreeMap<Joltage, u64>,
-    level: usize,
-) -> (Joltage, u64) {
-    if joltage.iter().map(|&j| j as u64).sum::<u64>() == 0 {
-        // eprintln!("DEBUG: return 0");
+    if joltage.iter().all(|&j| j == 0) {
         return 0;
     }
     if let Some(&cached_value) = cache.get(joltage) {
-        // eprintln!("DEBUG: return cached value {:?}", cached_value);
         return cached_value;
     }
-    eprintln!("DEBUG: search joltage {:?} level {}", joltage, level);
-    let parity: Indicator = joltage_to_parity(&joltage);
-    // dbg!(&parity);
+    let parity: Indicator = joltage_to_parity(joltage);
 
-    // special case for all even parity
-    let special_val: u64 = if parity.iter().all(|x| *x) {
-        // eprintln!("DEBUG: Parity all even");
-        combos
-            .values()
-            .map(|pmap| {
-                pmap.iter()
-                    .map(|(result, presses)| {
-                        if joltage.iter().zip(result.iter()).any(|(&j, &r)| j < 2 * r) {
-                            // eprintln!("DEBUG: even search: skip result {:?}", result);
-                            LARGE
-                        } else {
-                            // eprintln!("DEBUG: even search: trying result {:?}", result);
-                            let new_joltage: Joltage = joltage
-                                .iter()
-                                .zip(result.iter())
-                                .map(|(j, r)| j - r * 2)
-                                .collect();
-                            let presses = *presses as u64;
-                            find_fewest_buttons_joltage(&new_joltage, combos, cache, level + 1)
-                                + presses * 2
-                        }
-                    })
-                    .min()
-                    .unwrap()
-            })
-            .min()
-            .unwrap()
-    } else {
-        // eprintln!("DEBUG: Parity not all even");
-        LARGE
-    };
-    // dbg!(special_val);
-
-    // Also search single application of parity
     let value = if !combos.contains_key(&parity) {
-        // eprintln!("DEBUG: Parity miss");
         LARGE
     } else {
         combos[&parity]
@@ -219,97 +148,19 @@ fn find_fewest_buttons_single_joltage(
                     let new_joltage: Joltage = joltage
                         .iter()
                         .zip(result.iter())
-                        .map(|(j, r)| j - r)
+                        .map(|(j, r)| (j - r) / 2)
                         .collect();
+                    dbg!(&joltage);
+                    dbg!(&parity);
+                    dbg!(&result);
+                    dbg!(&presses);
                     let presses = *presses as u64;
-                    find_fewest_buttons_joltage(&new_joltage, combos, cache, level + 1) + presses
+                    find_fewest_buttons_joltage(&new_joltage, combos, cache) * 2 + presses
                 }
             })
             .min()
             .unwrap()
-            .min(special_val)
     };
-    // dbg!(value);
-    cache.insert(joltage.clone(), value);
-    value
-}
-fn _find_fewest_buttons_joltage_depth_first(
-    joltage: &Joltage,
-    combos: &ButtonCombos,
-    cache: &mut BTreeMap<Joltage, u64>,
-    level: usize,
-) -> u64 {
-    if joltage.iter().map(|&j| j as u64).sum::<u64>() == 0 {
-        // eprintln!("DEBUG: return 0");
-        return 0;
-    }
-    if let Some(&cached_value) = cache.get(joltage) {
-        // eprintln!("DEBUG: return cached value {:?}", cached_value);
-        return cached_value;
-    }
-    eprintln!("DEBUG: search joltage {:?} level {}", joltage, level);
-    let parity: Indicator = joltage_to_parity(&joltage);
-    // dbg!(&parity);
-
-    // special case for all even parity
-    let special_val: u64 = if parity.iter().all(|x| *x) {
-        // eprintln!("DEBUG: Parity all even");
-        combos
-            .values()
-            .map(|pmap| {
-                pmap.iter()
-                    .map(|(result, presses)| {
-                        if joltage.iter().zip(result.iter()).any(|(&j, &r)| j < 2 * r) {
-                            // eprintln!("DEBUG: even search: skip result {:?}", result);
-                            LARGE
-                        } else {
-                            // eprintln!("DEBUG: even search: trying result {:?}", result);
-                            let new_joltage: Joltage = joltage
-                                .iter()
-                                .zip(result.iter())
-                                .map(|(j, r)| j - r * 2)
-                                .collect();
-                            let presses = *presses as u64;
-                            find_fewest_buttons_joltage(&new_joltage, combos, cache, level + 1)
-                                + presses * 2
-                        }
-                    })
-                    .min()
-                    .unwrap()
-            })
-            .min()
-            .unwrap()
-    } else {
-        // eprintln!("DEBUG: Parity not all even");
-        LARGE
-    };
-    // dbg!(special_val);
-
-    // Also search single application of parity
-    let value = if !combos.contains_key(&parity) {
-        // eprintln!("DEBUG: Parity miss");
-        LARGE
-    } else {
-        combos[&parity]
-            .iter()
-            .map(|(result, presses)| {
-                if joltage.iter().zip(result.iter()).any(|(j, r)| j < r) {
-                    LARGE
-                } else {
-                    let new_joltage: Joltage = joltage
-                        .iter()
-                        .zip(result.iter())
-                        .map(|(j, r)| j - r)
-                        .collect();
-                    let presses = *presses as u64;
-                    find_fewest_buttons_joltage(&new_joltage, combos, cache, level + 1) + presses
-                }
-            })
-            .min()
-            .unwrap()
-            .min(special_val)
-    };
-    // dbg!(value);
     cache.insert(joltage.clone(), value);
     value
 }
@@ -339,12 +190,9 @@ impl AocSolution for Day10 {
             .map(|m| {
                 let combos = map_button_combinations(&m.buttons);
                 let mut cache = BTreeMap::new();
-                let level = 0;
-                let result = find_fewest_buttons_joltage(&m.joltage, &combos, &mut cache, level);
-                // dbg!(&combos);
-                // dbg!(&cache);
-                result
+                find_fewest_buttons_joltage(&m.joltage, &combos, &mut cache)
             })
+            .inspect(|x| eprintln!("got {x}"))
             .sum::<u64>()
             .to_string()
     }
@@ -359,13 +207,6 @@ mod tests {
 [.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}";
 
     #[test]
-    fn test_hash_set_of_vecs() {
-        let set: HashSet<Indicator> = HashSet::from([vec![false, true]]);
-        assert!(set.contains(&vec![false, true]));
-        assert!(!set.contains(&vec![false, false]));
-    }
-
-    #[test]
     fn test_part1_example() {
         assert_eq!(Day10.part1(EXAMPLE), "7");
     }
@@ -378,9 +219,7 @@ mod tests {
     #[test]
     fn test_map_button_combinations() {
         let machines = parse(EXAMPLE);
-        dbg!(&machines[0].buttons);
-        let map = map_button_combinations(&machines[0].buttons);
-        dbg!(map);
+        map_button_combinations(&machines[0].buttons);
     }
 
     #[test]
@@ -389,21 +228,37 @@ mod tests {
         let buttons: [Button; 3] = [vec![1, 2], vec![0, 2], vec![0, 1]];
         let combos = map_button_combinations(&buttons);
         let mut cache = BTreeMap::new();
-        let presses: u64 = find_fewest_buttons_joltage(&joltage, &combos, &mut cache, 0);
+        let presses: u64 = find_fewest_buttons_joltage(&joltage, &combos, &mut cache);
         assert_eq!(presses, 3);
     }
 
     #[test]
     fn test_part2_example_1() {
         assert_eq!(
-            dbg!(Day10.part2("[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}")),
+            Day10.part2("[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}"),
             "10"
         );
     }
 
     #[test]
+    fn test_part2_example_2() {
+        assert_eq!(
+            Day10.part2("[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}"),
+            "12"
+        );
+    }
+
+    #[test]
+    fn test_part2_example_3() {
+        assert_eq!(
+            Day10.part2("[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}"),
+            "11"
+        );
+    }
+
+    #[test]
     fn test_part2_example() {
-        assert_eq!(dbg!(Day10.part2(EXAMPLE)), "33");
+        assert_eq!(Day10.part2(EXAMPLE), "33");
     }
 
     #[test]
