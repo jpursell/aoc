@@ -201,7 +201,7 @@ fn map_button_combinations(buttons: &[Button]) -> ButtonCombos {
             out.entry(parity)
                 .and_modify(|v: &mut BTreeMap<Joltage, Presses>| {
                     v.entry(result.clone())
-                        .and_modify(|x: &mut Presses| *x = npressed.clone().min(x.clone()))
+                        // not needed because smaller npresses inserted first .and_modify(|x: &mut Presses| *x = npressed.clone().min(x.clone()))
                         .or_insert(npressed.clone());
                 })
                 .or_insert(BTreeMap::from([(result, npressed.clone())]));
@@ -304,9 +304,13 @@ mod tests {
         assert_eq!(Day10.part1(&input), "419");
     }
     #[test]
+    fn test_combinations() {
+        dbg!((0..4).combinations(2).collect::<Vec<_>>());
+    }
+    #[test]
     fn test_map_button_combinations() {
         let machines = parse(EXAMPLE);
-        map_button_combinations(&machines[0].buttons);
+        dbg!(map_button_combinations(&machines[2].buttons));
     }
 
     #[test]
