@@ -1,11 +1,7 @@
 use itertools::Itertools;
 use std::{
     collections::{BTreeMap, HashSet},
-    fmt::Display,
-    iter::Sum,
-    ops::{Add, Mul},
     str::FromStr,
-    time::Instant,
 };
 
 use crate::AocSolution;
@@ -13,89 +9,10 @@ use crate::AocSolution;
 type Indicator = Vec<u16>;
 type Button = Vec<usize>;
 type Joltage = Vec<u16>;
-
-#[derive(Debug, Clone)]
-struct Presses {
-    total: u64,
-    by_index: Vec<u64>,
-}
+type Presses = u64;
 
 const LARGE: u64 = 1_000_000;
-impl Presses {
-    pub const ZERO: Self = Presses {
-        total: 0,
-        by_index: Vec::new(),
-    };
-    pub const LARGE: Self = Presses {
-        total: LARGE,
-        by_index: Vec::new(),
-    };
-    fn new(total: u64, by_index: Vec<u64>) -> Self {
-        Presses { total, by_index }
-    }
-}
-
-impl Display for Presses {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "(tot: {}, vec: {:?})", self.total, self.by_index)
-    }
-}
-
-impl PartialEq for Presses {
-    fn eq(&self, other: &Self) -> bool {
-        self.total == other.total
-    }
-}
-
-impl Eq for Presses {}
-
-impl PartialOrd for Presses {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Presses {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.total.cmp(&other.total)
-    }
-}
-
-impl Add for Presses {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        let new_total = self.total + rhs.total;
-        let new_by_len = self
-            .by_index
-            .iter()
-            .zip_longest(rhs.by_index.iter())
-            .map(|pair| match pair {
-                itertools::EitherOrBoth::Both(&a, &b) => a + b,
-                itertools::EitherOrBoth::Left(&a) => a,
-                itertools::EitherOrBoth::Right(&a) => a,
-            })
-            .collect();
-        Presses::new(new_total, new_by_len)
-    }
-}
-
-impl Sum for Presses {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let start = Presses::ZERO;
-        iter.fold(start, |a, b| a + b)
-    }
-}
-
-impl Mul<u64> for Presses {
-    type Output = Self;
-
-    fn mul(self, rhs: u64) -> Self::Output {
-        let new_total = self.total * rhs;
-        let new_by_index = self.by_index.iter().map(|x| x * rhs).collect();
-        Presses::new(new_total, new_by_index)
-    }
-}
+const ZERO: u64 = 0;
 
 #[derive(Debug)]
 struct Machine {
@@ -185,7 +102,7 @@ fn map_button_combinations(buttons: &[Button]) -> ButtonCombos {
         .unwrap() as u16
         + 1;
     let mut out = BTreeMap::new();
-    for npressed in 1..=buttons.len() {
+    for npressed in 0..=buttons.len() {
         for combo in (0..buttons.len()).combinations(npressed) {
             let mut result: Vec<u16> = vec![0; max_index as usize];
             let mut by_index: Vec<u64> = vec![0; buttons.len()];
@@ -197,14 +114,14 @@ fn map_button_combinations(buttons: &[Button]) -> ButtonCombos {
                 by_index[*button_index] += 1;
             }
             let parity: Indicator = joltage_to_parity(&result);
-            let npressed: Presses = Presses::new(npressed as u64, by_index);
+            let npressed: Presses = npressed as u64;
             out.entry(parity)
                 .and_modify(|v: &mut BTreeMap<Joltage, Presses>| {
                     v.entry(result.clone())
                         // not needed because smaller npresses inserted first .and_modify(|x: &mut Presses| *x = npressed.clone().min(x.clone()))
-                        .or_insert(npressed.clone());
+                        .or_insert(npressed);
                 })
-                .or_insert(BTreeMap::from([(result, npressed.clone())]));
+                .or_insert(BTreeMap::from([(result, npressed)]));
         }
     }
     out
@@ -216,21 +133,21 @@ fn find_fewest_buttons_joltage(
     cache: &mut BTreeMap<Joltage, Presses>,
 ) -> Presses {
     if joltage.iter().all(|&j| j == 0) {
-        return Presses::ZERO;
+        return ZERO;
     }
     if let Some(cached_value) = cache.get(joltage) {
-        return cached_value.clone();
+        return *cached_value;
     }
     let parity: Indicator = joltage_to_parity(joltage);
 
     let value: Presses = if !combos.contains_key(&parity) {
-        Presses::LARGE
+        LARGE
     } else {
         combos[&parity]
             .iter()
             .map(|(result, presses)| {
                 if joltage.iter().zip(result.iter()).any(|(j, r)| j < r) {
-                    Presses::LARGE
+                    LARGE
                 } else {
                     let new_joltage: Joltage = joltage
                         .iter()
@@ -241,13 +158,14 @@ fn find_fewest_buttons_joltage(
                             d / 2
                         })
                         .collect();
-                    find_fewest_buttons_joltage(&new_joltage, combos, cache) * 2 + presses.clone()
+                    let new_answer = find_fewest_buttons_joltage(&new_joltage, combos, cache);
+                    new_answer * 2 + *presses
                 }
             })
             .min()
             .unwrap()
     };
-    cache.insert(joltage.clone(), value.clone());
+    cache.insert(joltage.clone(), value);
     value
 }
 
@@ -263,24 +181,14 @@ impl AocSolution for Day10 {
     }
 
     fn part2(&self, input: &str) -> String {
-        let start = Instant::now();
         parse(input)
             .iter()
-            .inspect(|m| {
-                eprintln!(
-                    "t:{} Working on machine {:?}",
-                    start.elapsed().as_secs_f32(),
-                    m
-                )
-            })
             .map(|m| {
                 let combos = map_button_combinations(&m.buttons);
                 let mut cache = BTreeMap::new();
                 find_fewest_buttons_joltage(&m.joltage, &combos, &mut cache)
             })
-            .inspect(|x| eprintln!("got {x}"))
             .sum::<Presses>()
-            .total
             .to_string()
     }
 }
@@ -303,15 +211,6 @@ mod tests {
         let input = crate::get_input_for_day(2025, 10).expect("Failed to get input");
         assert_eq!(Day10.part1(&input), "419");
     }
-    #[test]
-    fn test_combinations() {
-        dbg!((0..4).combinations(2).collect::<Vec<_>>());
-    }
-    #[test]
-    fn test_map_button_combinations() {
-        let machines = parse(EXAMPLE);
-        dbg!(map_button_combinations(&machines[2].buttons));
-    }
 
     #[test]
     fn test_part2_basic_solve() {
@@ -320,7 +219,7 @@ mod tests {
         let combos = map_button_combinations(&buttons);
         let mut cache = BTreeMap::new();
         let presses: Presses = find_fewest_buttons_joltage(&joltage, &combos, &mut cache);
-        assert_eq!(presses.total, 3);
+        assert_eq!(presses, 3);
     }
 
     #[test]
@@ -355,6 +254,6 @@ mod tests {
     #[test]
     fn test_part2_full() {
         let input = crate::get_input_for_day(2025, 10).expect("Failed to get input");
-        assert_eq!(Day10.part2(&input), "REPLACE_WITH_PART2_FULL_RESULT");
+        assert_eq!(Day10.part2(&input), "18369");
     }
 }
