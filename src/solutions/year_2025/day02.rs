@@ -58,7 +58,7 @@ fn find_repeats(low: &str, high: &str) -> BTreeSet<u64> {
             }
         }
     }
-    println!("{}-{} -> {:?}", low, high, bad_ids);
+    // println!("{}-{} -> {:?}", low, high, bad_ids);
     bad_ids
 }
 

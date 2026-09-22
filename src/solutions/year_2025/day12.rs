@@ -160,11 +160,7 @@ impl Puzzle {
     fn part1(&self) -> String {
         (0..self.trees.len())
             .into_iter()
-            .map(|itree| {
-                let result = if self.shapes_fit(itree) { 1 } else { 0 };
-                println!("tree {} -> {}", itree, result);
-                result
-            })
+            .map(|itree| if self.shapes_fit(itree) { 1 } else { 0 })
             .sum::<u64>()
             .to_string()
     }
