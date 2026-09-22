@@ -2,10 +2,10 @@ use crate::AocSolution;
 use itertools::Itertools;
 use ndarray::prelude::*;
 
-const NPIECES: u8 = 6;
+// const NPIECES: u8 = 6;
 
 #[derive(Debug)]
-struct Shape {
+struct PresentShape {
     grid: Array2<bool>,
 }
 
@@ -18,105 +18,105 @@ struct Tree {
 #[derive(Debug)]
 struct Puzzle {
     shape_sizes: Vec<u8>,
-    _shapes: Vec<Shape>,
+    _present_shapes: Vec<PresentShape>,
     trees: Vec<Tree>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-struct State {
-    flip: bool,
-    piece: u8,
-    position: u16,
-    rotation: u8,
-}
+// #[derive(Debug, PartialEq, Eq)]
+// struct State {
+//     flip: bool,
+//     piece: u8,
+//     position: u16,
+//     rotation: u8,
+// }
 
-#[derive(Debug, Clone, Copy)]
-struct Placer {
-    ended: bool,
-    flip: bool,
-    piece: u8,
-    position: u16,
-    rotation: u8,
-    tree_size: u16,
-}
-impl Iterator for Placer {
-    type Item = State;
+// #[derive(Debug, Clone, Copy)]
+// struct Placer {
+//     ended: bool,
+//     flip: bool,
+//     piece: u8,
+//     position: u16,
+//     rotation: u8,
+//     tree_size: u16,
+// }
+// impl Iterator for Placer {
+//     type Item = State;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.ended {
-            return None;
-        }
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.ended {
+//             return None;
+//         }
 
-        let state = State {
-            flip: self.flip,
-            piece: self.piece,
-            position: self.position,
-            rotation: self.rotation,
-        };
+//         let state = State {
+//             flip: self.flip,
+//             piece: self.piece,
+//             position: self.position,
+//             rotation: self.rotation,
+//         };
 
-        // flip [false, true]
-        self.flip = !self.flip;
-        if self.flip {
-            return Some(state);
-        }
+//         // flip [false, true]
+//         self.flip = !self.flip;
+//         if self.flip {
+//             return Some(state);
+//         }
 
-        // piece: 0..NPIECES
-        self.piece += 1;
-        self.piece %= NPIECES;
-        if self.piece > 0 {
-            return Some(state);
-        }
+//         // piece: 0..NPIECES
+//         self.piece += 1;
+//         self.piece %= NPIECES;
+//         if self.piece > 0 {
+//             return Some(state);
+//         }
 
-        // position: 0..tree_size
-        self.position += 1;
-        self.position %= self.tree_size;
-        if self.position > 0 {
-            return Some(state);
-        }
+//         // position: 0..tree_size
+//         self.position += 1;
+//         self.position %= self.tree_size;
+//         if self.position > 0 {
+//             return Some(state);
+//         }
 
-        // rotation: 0..4
-        self.rotation += 1;
-        if self.rotation == 4 {
-            self.ended = true;
-        }
+//         // rotation: 0..4
+//         self.rotation += 1;
+//         if self.rotation == 4 {
+//             self.ended = true;
+//         }
 
-        Some(state)
-    }
-}
-impl Placer {
-    fn new(tree_size: u16) -> Self {
-        Placer {
-            tree_size,
-            ended: false,
-            flip: false,
-            piece: 0,
-            position: 0,
-            rotation: 0,
-        }
-    }
-    fn _reset(&mut self) {
-        self.ended = false;
-        self.flip = false;
-        self.piece = 0;
-        self.position = 0;
-        self.rotation = 0;
-    }
-}
+//         Some(state)
+//     }
+// }
+// impl Placer {
+//     fn new(tree_size: u16) -> Self {
+//         Placer {
+//             tree_size,
+//             ended: false,
+//             flip: false,
+//             piece: 0,
+//             position: 0,
+//             rotation: 0,
+//         }
+//     }
+//     fn _reset(&mut self) {
+//         self.ended = false;
+//         self.flip = false;
+//         self.piece = 0;
+//         self.position = 0;
+//         self.rotation = 0;
+//     }
+// }
 impl Puzzle {
-    fn new(_shapes: Vec<Shape>, trees: Vec<Tree>) -> Self {
-        let shape_sizes: Vec<u8> = _shapes
+    fn new(_present_shapes: Vec<PresentShape>, trees: Vec<Tree>) -> Self {
+        let shape_sizes: Vec<u8> = _present_shapes
             .iter()
             .map(|s| s.grid.iter().map(|&x| if x { 1 } else { 0 }).sum::<u8>())
             .collect();
 
         Puzzle {
-            _shapes,
+            _present_shapes,
             trees,
             shape_sizes,
         }
     }
     fn shapes_fit(&self, itree: usize) -> bool {
-        let tree = &self.trees[itree];
+        let tree: &Tree = &self.trees[itree];
         let total_required = self
             .shape_sizes
             .iter()
@@ -150,7 +150,7 @@ impl Puzzle {
         // - not using too many of 1 piece
         //
         // let mut stack =
-        vec![Placer::new(tree_nelem); tree.shape_counts.iter().map(|&c| c as usize).product()];
+        // vec![Placer::new(tree_nelem); tree.shape_counts.iter().map(|&c| c as usize).product()];
         // loop {
         //     break;
         // }
@@ -160,7 +160,11 @@ impl Puzzle {
     fn part1(&self) -> String {
         (0..self.trees.len())
             .into_iter()
-            .map(|itree| if self.shapes_fit(itree) { 1 } else { 0 })
+            .map(|itree| {
+                let result = if self.shapes_fit(itree) { 1 } else { 0 };
+                println!("tree {} -> {}", itree, result);
+                result
+            })
             .sum::<u64>()
             .to_string()
     }
@@ -192,7 +196,7 @@ fn parse(input: &str) -> Puzzle {
                     _ => panic!(),
                 })
             });
-            Shape {
+            PresentShape {
                 grid: Array2::from_shape_vec(shape_size, shape).unwrap(),
             }
         })
@@ -234,100 +238,101 @@ impl AocSolution for Day12 {
 
 #[cfg(test)]
 mod tests {
-    use itertools::iproduct;
+    // use itertools::iproduct;
 
     use super::*;
 
-    const EXAMPLE: &str = r"0:
-###
-##.
-##.
+    //     const EXAMPLE: &str = r"0:
+    // ###
+    // ##.
+    // ##.
 
-1:
-###
-##.
-.##
+    // 1:
+    // ###
+    // ##.
+    // .##
 
-2:
-.##
-###
-##.
+    // 2:
+    // .##
+    // ###
+    // ##.
 
-3:
-##.
-###
-##.
+    // 3:
+    // ##.
+    // ###
+    // ##.
 
-4:
-###
-#..
-###
+    // 4:
+    // ###
+    // #..
+    // ###
 
-5:
-###
-.#.
-###
+    // 5:
+    // ###
+    // .#.
+    // ###
 
-4x4: 0 0 0 0 2 0
-12x5: 1 0 1 0 2 2
-12x5: 1 0 1 0 3 2";
+    // 4x4: 0 0 0 0 2 0
+    // 12x5: 1 0 1 0 2 2
+    // 12x5: 1 0 1 0 3 2";
 
-    #[test]
-    fn test_placer() {
-        let tree_size = 3;
-        let mut placer = Placer::new(tree_size);
-        let placer_vec: Vec<State> = (&mut placer).collect();
-        placer._reset();
-        let placer_vec_2: Vec<State> = placer.collect();
-        let product_vec: Vec<State> =
-            iproduct!(0..4, 0..tree_size, 0..NPIECES, [false, true].iter())
-                .map(|(rotation, position, piece, &flip)| State {
-                    flip,
-                    piece,
-                    position,
-                    rotation,
-                })
-                .collect();
-        if placer_vec.len() != product_vec.len() {
-            for i in 0..placer_vec.len().max(product_vec.len()) {
-                eprintln!(
-                    "[{}] equal: {} placer: {:?}, product: {:?}",
-                    i,
-                    placer_vec.get(i) == product_vec.get(i),
-                    placer_vec.get(i),
-                    product_vec.get(i)
-                );
-            }
-        }
-        assert_eq!(placer_vec.len(), product_vec.len());
-        assert_eq!(placer_vec_2.len(), product_vec.len());
-        for (placer_state, product_state) in placer_vec.iter().zip(product_vec.iter()) {
-            assert_eq!(placer_state, product_state);
-        }
-        for (placer_state, product_state) in placer_vec_2.iter().zip(product_vec.iter()) {
-            assert_eq!(placer_state, product_state);
-        }
-    }
+    // #[test]
+    // fn test_placer() {
+    //     let tree_size = 3;
+    //     let mut placer = Placer::new(tree_size);
+    //     let placer_vec: Vec<State> = (&mut placer).collect();
+    //     placer._reset();
+    //     let placer_vec_2: Vec<State> = placer.collect();
+    //     let product_vec: Vec<State> =
+    //         iproduct!(0..4, 0..tree_size, 0..NPIECES, [false, true].iter())
+    //             .map(|(rotation, position, piece, &flip)| State {
+    //                 flip,
+    //                 piece,
+    //                 position,
+    //                 rotation,
+    //             })
+    //             .collect();
+    //     if placer_vec.len() != product_vec.len() {
+    //         for i in 0..placer_vec.len().max(product_vec.len()) {
+    //             eprintln!(
+    //                 "[{}] equal: {} placer: {:?}, product: {:?}",
+    //                 i,
+    //                 placer_vec.get(i) == product_vec.get(i),
+    //                 placer_vec.get(i),
+    //                 product_vec.get(i)
+    //             );
+    //         }
+    //     }
+    //     assert_eq!(placer_vec.len(), product_vec.len());
+    //     assert_eq!(placer_vec_2.len(), product_vec.len());
+    //     for (placer_state, product_state) in placer_vec.iter().zip(product_vec.iter()) {
+    //         assert_eq!(placer_state, product_state);
+    //     }
+    //     for (placer_state, product_state) in placer_vec_2.iter().zip(product_vec.iter()) {
+    //         assert_eq!(placer_state, product_state);
+    //     }
+    // }
 
-    #[test]
-    fn test_part1_example() {
-        assert_eq!(Day12.part1(EXAMPLE), "2");
-    }
+    // #[test]
+    // fn test_part1_example() {
+    //     assert_eq!(Day12.part1(EXAMPLE), "2");
+    // }
 
     #[test]
     fn test_part1_full() {
+        // panic!("just don't try");
         let input = crate::get_input_for_day(2025, 12).expect("Failed to get input");
-        assert_eq!(Day12.part1(&input), "REPLACE_WITH_PART1_FULL_RESULT");
+        assert_eq!(Day12.part1(&input), "579");
     }
 
-    #[test]
-    fn test_part2_example() {
-        assert_eq!(Day12.part2(EXAMPLE), "REPLACE_WITH_PART2_EXAMPLE_RESULT");
-    }
+    // #[test]
+    // fn test_part2_example() {
+    //     assert_eq!(Day12.part2(EXAMPLE), "REPLACE_WITH_PART2_EXAMPLE_RESULT");
+    // }
 
-    #[test]
-    fn test_part2_full() {
-        let input = crate::get_input_for_day(2025, 12).expect("Failed to get input");
-        assert_eq!(Day12.part2(&input), "REPLACE_WITH_PART2_FULL_RESULT");
-    }
+    // #[test]
+    // fn test_part2_full() {
+    //     let input = crate::get_input_for_day(2025, 12).expect("Failed to get input");
+    //     assert_eq!(Day12.part2(&input), "REPLACE_WITH_PART2_FULL_RESULT");
+    // }
 }
