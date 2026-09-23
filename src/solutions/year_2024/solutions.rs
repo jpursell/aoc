@@ -18,5 +18,14 @@ pub fn get_solutions() -> std::collections::HashMap<u8, Box<dyn crate::AocSoluti
     map.insert(14, Box::new(super::day14::Day14));
     map.insert(15, Box::new(super::day15::Day15));
     map.insert(16, Box::new(super::day16::Day16));
+    map.insert(17, Box::new(super::day17::Day17));
+    map.insert(18, Box::new(super::day18::Day18));
+    map.insert(19, Box::new(super::day19::Day19));
+    map.insert(20, Box::new(super::day20::Day20));
+    map.insert(21, Box::new(super::day21::Day21));
+    map.insert(22, Box::new(super::day22::Day22));
+    map.insert(23, Box::new(super::day23::Day23));
+    map.insert(24, Box::new(super::day24::Day24));
+    map.insert(25, Box::new(super::day25::Day25));
     map
 }

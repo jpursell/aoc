@@ -87,23 +87,24 @@ fn quadrant(position: [i64; 2], room_size: [i64; 2]) -> Option<usize> {
 
 fn symmetry(room: ArrayView2<bool>) -> usize {
     let mut out = 0;
-    let shape = room.shape();
-    for irow in 1..shape[0] {
-        for icol in 1..shape[1] {
-            let mut is_symmetric = true;
-            for drow in 0..=irow.min(shape[0] - 1 - irow) {
-                for dcol in 0..=icol.min(shape[1] - 1 - icol) {
-                    if room[[irow - drow, icol - dcol]] != room[[irow + drow, icol + dcol]] {
-                        is_symmetric = false;
-                        break;
+    for irow in 0..room.shape()[0] {
+        if irow == 0 {
+            continue;
+        }
+        for icol in 0..(room.shape()[1] - 1) / 2 {
+            if icol == 0 {
+                continue;
+            }
+            for drow in -1_i32..=1 {
+                for dcol in -1_i32..=1 {
+                    if let Some(val) =
+                        room.get([(irow as i32 + drow) as usize, (icol as i32 + dcol) as usize])
+                    {
+                        if *val {
+                            out += 1;
+                        }
                     }
                 }
-                if !is_symmetric {
-                    break;
-                }
-            }
-            if is_symmetric {
-                out += 1;
             }
         }
     }
@@ -204,11 +205,9 @@ p=9,5 v=-3,-3"#;
     //     assert_eq!(puzzle.process_part2(room_size), 0);
     // }
 
-    // This test takes too long to run.
-    // #[test]
-    // fn test_part2_full() {
-    //     let input = crate::get_input_for_day(2024, 14).expect("Failed to get input");
-    //     // The value is taken from the last printed value in the original 14b.rs
-    //     assert_eq!(Day14.part2(&input), "10403");
-    // }
+    #[test]
+    fn test_part2_full() {
+        let input = crate::get_input_for_day(2024, 14).expect("Failed to get input");
+        assert_eq!(Day14.part2(&input), "7344");
+    }
 }
