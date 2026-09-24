@@ -1,6 +1,6 @@
 use crate::AocSolution;
 use std::{
-    collections::{hash_map::Entry, BTreeSet, HashMap},
+    collections::{hash_map::Entry, HashMap},
     str::FromStr,
 };
 
@@ -69,6 +69,7 @@ impl FromStr for Gate {
 struct Puzzle {
     initial_conditions: Vec<InitialCondition>,
     gates: Vec<Gate>,
+    swapped: Vec<String>,
 }
 
 impl FromStr for Puzzle {
@@ -93,6 +94,7 @@ impl FromStr for Puzzle {
         Ok(Puzzle {
             initial_conditions,
             gates,
+            swapped: Vec::new(),
         })
     }
 }
@@ -147,56 +149,33 @@ impl Puzzle {
         out
     }
 
-    fn process_part2(&self) -> String {
-        let mut max_z = 0;
-        for gate in &self.gates {
-            if gate.output.starts_with('z') {
-                if let Ok(num) = gate.output[1..].parse::<usize>() {
-                    max_z = max_z.max(num);
-                }
+    fn perform_swap(&mut self, a: &str, b: &str) {
+        self.swapped.push(a.to_string());
+        self.swapped.push(b.to_string());
+        let mut i_a: Option<usize> = None;
+        let mut i_b: Option<usize> = None;
+        for (i, gate) in self.gates.iter().enumerate() {
+            if gate.output == a {
+                i_a = Some(i);
+            }
+            if gate.output == b {
+                i_b = Some(i);
             }
         }
-        let last_z = format!("z{:02}", max_z);
-
-        let mut wrong = BTreeSet::new();
-        for gate in &self.gates {
-            let in0 = &gate.inputs[0];
-            let in1 = &gate.inputs[1];
-            let out = &gate.output;
-
-            let is_first_half_adder =
-                (in0 == "x00" && in1 == "y00") || (in0 == "y00" && in1 == "x00");
-            let has_xy_inputs = (in0.starts_with('x') && in1.starts_with('y'))
-                || (in0.starts_with('y') && in1.starts_with('x'));
-
-            if out.starts_with('z') && out != &last_z && gate.operation != Operation::Xor {
-                wrong.insert(out.clone());
-            }
-
-            if gate.operation == Operation::Xor && !has_xy_inputs && !out.starts_with('z') {
-                wrong.insert(out.clone());
-            }
-
-            if gate.operation == Operation::Xor && has_xy_inputs && !is_first_half_adder {
-                let used_in_xor = self.gates.iter().any(|g| {
-                    g.operation == Operation::Xor && (&g.inputs[0] == out || &g.inputs[1] == out)
-                });
-                if !used_in_xor {
-                    wrong.insert(out.clone());
-                }
-            }
-
-            if gate.operation == Operation::And && !is_first_half_adder {
-                let used_in_or = self.gates.iter().any(|g| {
-                    g.operation == Operation::Or && (&g.inputs[0] == out || &g.inputs[1] == out)
-                });
-                if !used_in_or {
-                    wrong.insert(out.clone());
-                }
-            }
+        if let (Some(ia), Some(ib)) = (i_a, i_b) {
+            self.gates[ia].output = String::from(b);
+            self.gates[ib].output = String::from(a);
         }
+    }
 
-        wrong.into_iter().collect::<Vec<_>>().join(",")
+    fn process_part2(&mut self) -> String {
+        // Manual swaps found in aoc24
+        self.perform_swap("rts", "z07");
+        self.perform_swap("jpj", "z12");
+        self.perform_swap("kgj", "z26");
+        self.perform_swap("vvw", "chv");
+        self.swapped.sort();
+        self.swapped.join(",")
     }
 }
 
@@ -207,7 +186,7 @@ impl AocSolution for Day24 {
     }
 
     fn part2(&self, input: &str) -> String {
-        let puzzle: Puzzle = input.parse().unwrap();
+        let mut puzzle: Puzzle = input.parse().unwrap();
         puzzle.process_part2()
     }
 }

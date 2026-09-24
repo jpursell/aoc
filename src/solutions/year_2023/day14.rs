@@ -1,126 +1,272 @@
-use std::collections::HashMap;
-
 use crate::AocSolution;
 
 pub struct Day14;
 
-fn tilt_start(arr: &mut [u8]) {
-    let mut write = 0;
-    for read in 0..arr.len() {
-        if arr[read] == b'#' {
-            write = read + 1;
-        } else if arr[read] == b'O' {
-            arr[read] = b'.';
-            arr[write] = b'O';
-            write += 1;
+mod a {
+    use std::str::FromStr;
+
+    #[derive(Debug, PartialEq, Eq)]
+    enum Rock {
+        R,
+        S,
+        N,
+    }
+    impl TryFrom<char> for Rock {
+        type Error = &'static str;
+        fn try_from(value: char) -> Result<Self, Self::Error> {
+            match value {
+                'O' => Ok(Rock::R),
+                '.' => Ok(Rock::N),
+                '#' => Ok(Rock::S),
+                _ => Err("Unknown Rock"),
+            }
         }
     }
-}
-
-fn tilt_end(arr: &mut [u8]) {
-    let mut write = arr.len().saturating_sub(1);
-    for read in (0..arr.len()).rev() {
-        if arr[read] == b'#' {
-            write = read.saturating_sub(1);
-        } else if arr[read] == b'O' {
-            arr[read] = b'.';
-            arr[write] = b'O';
-            write = write.saturating_sub(1);
+    struct RockField {
+        rocks: Vec<Vec<Rock>>,
+    }
+    impl FromStr for RockField {
+        type Err = &'static str;
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let rocks = s
+                .lines()
+                .map(|line| {
+                    line.chars()
+                        .map(|c| Rock::try_from(c).unwrap())
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+            Ok(RockField { rocks })
         }
     }
-}
-
-fn tilt_north(grid: &mut [Vec<u8>]) {
-    let nrows = grid.len();
-    let ncols = grid[0].len();
-    for c in 0..ncols {
-        let mut col: Vec<u8> = (0..nrows).map(|r| grid[r][c]).collect();
-        tilt_start(&mut col);
-        for r in 0..nrows {
-            grid[r][c] = col[r];
+    #[derive(Debug, PartialEq, Eq)]
+    enum Direction {
+        N,
+        // E,
+        // S,
+        // W,
+    }
+    impl RockField {
+        fn roll(&mut self, direction: Direction) -> bool {
+            assert_eq!(direction, Direction::N);
+            let mut changed = false;
+            for irow in 1..self.rocks.len() {
+                for icol in 0..self.rocks[0].len() {
+                    if self.rocks[irow][icol] == Rock::R && self.rocks[irow - 1][icol] == Rock::N {
+                        self.rocks[irow][icol] = Rock::N;
+                        self.rocks[irow - 1][icol] = Rock::R;
+                        changed = true
+                    }
+                }
+            }
+            changed
+        }
+        fn count_rocks(&self) -> usize {
+            let nrows = self.rocks.len();
+            self.rocks
+                .iter()
+                .enumerate()
+                .map(|(irow, row)| {
+                    row.iter()
+                        .map(|r| if *r == Rock::R { nrows - irow } else { 0 })
+                        .sum::<usize>()
+                })
+                .sum::<usize>()
         }
     }
+    pub fn run(input: &str) -> usize {
+        let mut field = input.parse::<RockField>().unwrap();
+        loop {
+            if !field.roll(Direction::N) {
+                break;
+            }
+        }
+        field.count_rocks()
+    }
 }
 
-fn tilt_south(grid: &mut [Vec<u8>]) {
-    let nrows = grid.len();
-    let ncols = grid[0].len();
-    for c in 0..ncols {
-        let mut col: Vec<u8> = (0..nrows).map(|r| grid[r][c]).collect();
-        tilt_end(&mut col);
-        for r in 0..nrows {
-            grid[r][c] = col[r];
+mod b {
+    use ndarray::{Array2, ArrayViewMut1, Axis};
+    use std::str::FromStr;
+
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    enum Rock {
+        R,
+        S,
+        N,
+    }
+
+    impl TryFrom<char> for Rock {
+        type Error = &'static str;
+        fn try_from(value: char) -> Result<Self, Self::Error> {
+            match value {
+                'O' => Ok(Rock::R),
+                '.' => Ok(Rock::N),
+                '#' => Ok(Rock::S),
+                _ => Err("Unknown Rock"),
+            }
         }
     }
-}
 
-fn tilt_west(grid: &mut [Vec<u8>]) {
-    for row in grid.iter_mut() {
-        tilt_start(row);
+    #[derive(PartialEq, Debug)]
+    struct RockField {
+        rocks: Array2<Rock>,
+        nrows: usize,
+        // ncols: usize,
     }
-}
 
-fn tilt_east(grid: &mut [Vec<u8>]) {
-    for row in grid.iter_mut() {
-        tilt_end(row);
+    impl FromStr for RockField {
+        type Err = &'static str;
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let rocks = s
+                .lines()
+                .map(|line| {
+                    line.chars()
+                        .map(|c| Rock::try_from(c).unwrap())
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+            let nrows = rocks.len();
+            let ncols = rocks[0].len();
+            let rocks = rocks.concat();
+            let rocks = Array2::from_shape_vec((nrows, ncols), rocks).unwrap();
+            Ok(RockField {
+                rocks,
+                nrows,
+                // ncols,
+            })
+        }
     }
-}
 
-fn cycle(grid: &mut [Vec<u8>]) {
-    tilt_north(grid);
-    tilt_west(grid);
-    tilt_south(grid);
-    tilt_east(grid);
-}
+    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    enum Direction {
+        N,
+        E,
+        S,
+        W,
+    }
 
-fn calculate_load(grid: &[Vec<u8>]) -> usize {
-    let nrows = grid.len();
-    grid.iter()
-        .enumerate()
-        .map(|(r, row)| {
-            let count = row.iter().filter(|&&c| c == b'O').count();
-            count * (nrows - r)
-        })
-        .sum()
-}
+    impl RockField {
+        fn roll_arr(arr: &mut ArrayViewMut1<Rock>, forward: bool) {
+            if forward {
+                // if forward then move rocks to higher index
+                let mut write = arr.len() - 1;
+                for read in (0..arr.len()).rev() {
+                    if arr[read] == Rock::S {
+                        write = read;
+                    }
+                    while write > 0 && arr[write] != Rock::N {
+                        write -= 1;
+                    }
+                    if read >= write || arr[write] != Rock::N {
+                        continue;
+                    }
+                    if arr[read] == Rock::R {
+                        arr[read] = Rock::N;
+                        arr[write] = Rock::R;
+                    }
+                }
+            } else {
+                // if !forward then move rocks to lower index
+                let mut write = 0;
+                for read in 0..arr.len() {
+                    if arr[read] == Rock::S {
+                        write = read;
+                    }
+                    while write < arr.len() - 1 && arr[write] != Rock::N {
+                        write += 1;
+                    }
+                    if read <= write || arr[write] != Rock::N {
+                        continue;
+                    }
+                    if arr[read] == Rock::R {
+                        arr[read] = Rock::N;
+                        arr[write] = Rock::R;
+                    }
+                }
+            }
+        }
+        fn roll(&mut self, direction: Direction) {
+            match direction {
+                Direction::S => {
+                    self.rocks
+                        .axis_iter_mut(Axis(1))
+                        .for_each(|mut c| RockField::roll_arr(&mut c, true));
+                }
+                Direction::N => {
+                    self.rocks
+                        .axis_iter_mut(Axis(1))
+                        .for_each(|mut c| RockField::roll_arr(&mut c, false));
+                }
+                Direction::E => {
+                    self.rocks
+                        .axis_iter_mut(Axis(0))
+                        .for_each(|mut c| RockField::roll_arr(&mut c, true));
+                }
+                Direction::W => {
+                    self.rocks
+                        .axis_iter_mut(Axis(0))
+                        .for_each(|mut c| RockField::roll_arr(&mut c, false));
+                }
+            }
+        }
 
-fn parse_grid(input: &str) -> Vec<Vec<u8>> {
-    input
-        .lines()
-        .filter(|line| !line.trim().is_empty())
-        .map(|line| line.as_bytes().to_vec())
-        .collect()
+        fn roll_cycle(&mut self) {
+            self.roll(Direction::N);
+            self.roll(Direction::W);
+            self.roll(Direction::S);
+            self.roll(Direction::E);
+        }
+
+        fn count_rocks(&self) -> usize {
+            self.rocks
+                .indexed_iter()
+                .map(
+                    |((irow, _), r)| {
+                        if *r == Rock::R {
+                            self.nrows - irow
+                        } else {
+                            0
+                        }
+                    },
+                )
+                .sum::<usize>()
+        }
+    }
+    pub fn run(input: &str) -> usize {
+        let mut field = input.parse::<RockField>().unwrap();
+        let data = (0..300)
+            .map(|_| {
+                field.roll_cycle();
+                field.count_rocks()
+            })
+            .collect::<Vec<_>>();
+        let last = *data.last().unwrap();
+        let pos = data
+            .iter()
+            .enumerate()
+            .filter(|(_, x)| **x == last)
+            .map(|(i, _)| i)
+            .collect::<Vec<_>>();
+        let pdiff = pos.windows(2).map(|x| x[1] - x[0]).collect::<Vec<_>>();
+        pos.iter()
+            .zip(pdiff.iter())
+            .for_each(|(p, d)| println!("{} {}", p, d));
+        assert!(pdiff.len() > 1);
+        assert!(pdiff.iter().all(|d| *d == pdiff[0]));
+
+        let ncycles = 1_000_000_000;
+        data[pos[0] + ((ncycles - 1 - pos[0]) % pdiff[0])]
+    }
 }
 
 impl AocSolution for Day14 {
     fn part1(&self, input: &str) -> String {
-        let mut grid = parse_grid(input);
-        tilt_north(&mut grid);
-        calculate_load(&grid).to_string()
+        a::run(input).to_string()
     }
 
     fn part2(&self, input: &str) -> String {
-        let mut grid = parse_grid(input);
-        let mut seen = HashMap::new();
-        let total_cycles = 1_000_000_000;
-
-        let mut step = 0;
-        while step < total_cycles {
-            let key = grid.clone();
-            if let Some(&prev_step) = seen.get(&key) {
-                let cycle_len = step - prev_step;
-                let remaining = (total_cycles - step) % cycle_len;
-                for _ in 0..remaining {
-                    cycle(&mut grid);
-                }
-                break;
-            }
-            seen.insert(key, step);
-            cycle(&mut grid);
-            step += 1;
-        }
-
-        calculate_load(&grid).to_string()
+        b::run(input).to_string()
     }
 }
 
@@ -128,7 +274,7 @@ impl AocSolution for Day14 {
 mod tests {
     use super::*;
 
-    const EXAMPLE: &str = r"O....#....
+    const EXAMPLE: &str = r#"O....#....
 O.OO#....#
 .....##...
 OO.#O....O
@@ -137,7 +283,7 @@ O.#..O.#.#
 ..O..#O..O
 .......O..
 #....###..
-#OO..#....";
+#OO..#...."#;
 
     #[test]
     fn test_part1_example() {

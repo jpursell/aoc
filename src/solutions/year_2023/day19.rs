@@ -1,191 +1,557 @@
-use std::collections::HashMap;
-
 use crate::AocSolution;
 
 pub struct Day19;
 
-#[derive(Clone, Debug)]
-enum Condition {
-    Lt(usize, u64),
-    Gt(usize, u64),
-}
+mod a {
+    use std::{collections::HashMap, str::FromStr};
 
-#[derive(Clone, Debug)]
-struct Rule {
-    cond: Option<Condition>,
-    target: String,
-}
-
-#[derive(Clone, Debug)]
-struct Workflow {
-    rules: Vec<Rule>,
-}
-
-fn var_to_idx(c: char) -> usize {
-    match c {
-        'x' => 0,
-        'm' => 1,
-        'a' => 2,
-        's' => 3,
-        _ => panic!("Unknown var {}", c),
+    #[derive(Debug)]
+    enum Parameter {
+        X,
+        M,
+        A,
+        S,
     }
-}
 
-fn parse_rule(s: &str) -> Rule {
-    if let Some((cond_str, target)) = s.split_once(':') {
-        let var_idx = var_to_idx(cond_str.chars().next().unwrap());
-        let op = cond_str.chars().nth(1).unwrap();
-        let val: u64 = cond_str[2..].parse().unwrap();
-        let cond = match op {
-            '<' => Condition::Lt(var_idx, val),
-            '>' => Condition::Gt(var_idx, val),
-            _ => panic!("Unknown op {}", op),
-        };
-        Rule {
-            cond: Some(cond),
-            target: target.to_string(),
-        }
-    } else {
-        Rule {
-            cond: None,
-            target: s.to_string(),
+    impl FromStr for Parameter {
+        type Err = &'static str;
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            match s {
+                "x" => Ok(Parameter::X),
+                "m" => Ok(Parameter::M),
+                "a" => Ok(Parameter::A),
+                "s" => Ok(Parameter::S),
+                _ => Err("unknown parameter"),
+            }
         }
     }
-}
 
-fn parse_workflows(input: &str) -> HashMap<String, Workflow> {
-    let mut map = HashMap::new();
-    for line in input.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('{') {
-            continue;
-        }
-        let (name, rest) = line.split_once('{').unwrap();
-        let rules_str = rest.trim_end_matches('}');
-        let rules = rules_str.split(',').map(parse_rule).collect();
-        map.insert(name.to_string(), Workflow { rules });
+    #[derive(Debug)]
+    enum Instruction {
+        LessThan((Parameter, usize, String)),
+        GreaterThan((Parameter, usize, String)),
+        Goto(String),
     }
-    map
-}
-
-fn parse_part(line: &str) -> [u64; 4] {
-    let trimmed = line.trim().trim_matches(|c| c == '{' || c == '}');
-    let mut part = [0u64; 4];
-    for item in trimmed.split(',') {
-        let (k, v) = item.split_once('=').unwrap();
-        let idx = var_to_idx(k.chars().next().unwrap());
-        part[idx] = v.parse().unwrap();
+    impl FromStr for Instruction {
+        type Err = &'static str;
+        /// Parse a<2006:qkq, m>2090:A, rfg
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            if s.contains(">") {
+                let (parameter, s) = s.split_once(">").unwrap();
+                let (value, destination) = s.split_once(":").unwrap();
+                let value = value.parse::<usize>().unwrap();
+                let parameter = parameter.parse::<Parameter>().unwrap();
+                return Ok(Instruction::GreaterThan((
+                    parameter,
+                    value,
+                    destination.to_string(),
+                )));
+            }
+            if s.contains("<") {
+                let (parameter, s) = s.split_once("<").unwrap();
+                let (value, destination) = s.split_once(":").unwrap();
+                let value = value.parse::<usize>().unwrap();
+                let parameter = parameter.parse::<Parameter>().unwrap();
+                return Ok(Instruction::LessThan((
+                    parameter,
+                    value,
+                    destination.to_string(),
+                )));
+            }
+            Ok(Instruction::Goto(s.to_string()))
+        }
     }
-    part
-}
 
-fn is_accepted(part: &[u64; 4], workflows: &HashMap<String, Workflow>) -> bool {
-    let mut current = "in";
-    loop {
-        if current == "A" {
-            return true;
+    #[derive(Debug)]
+    struct Workflow {
+        instructions: Vec<Instruction>,
+    }
+
+    impl Workflow {
+        fn run(&self, part: &Part) -> &str {
+            for x in &self.instructions {
+                match x {
+                    Instruction::Goto(destination) => {
+                        return &destination;
+                    }
+                    Instruction::LessThan((parameter, value, destination)) => {
+                        let parameter = part.get_parameter(parameter);
+                        if parameter < *value {
+                            return &destination;
+                        }
+                    }
+                    Instruction::GreaterThan((parameter, value, destination)) => {
+                        let parameter = part.get_parameter(parameter);
+                        if parameter > *value {
+                            return &destination;
+                        }
+                    }
+                }
+            }
+            panic!()
         }
-        if current == "R" {
-            return false;
-        }
-        let wf = &workflows[current];
-        for rule in &wf.rules {
-            let matches = match &rule.cond {
-                None => true,
-                Some(Condition::Lt(idx, val)) => part[*idx] < *val,
-                Some(Condition::Gt(idx, val)) => part[*idx] > *val,
+    }
+
+    #[derive(Debug)]
+    struct NamedWorkflow {
+        name: String,
+        workflow: Workflow,
+    }
+
+    impl FromStr for NamedWorkflow {
+        type Err = &'static str;
+        fn from_str(line: &str) -> Result<Self, Self::Err> {
+            let (workflow_name, line) = line.split_once("{").unwrap();
+            let (line, _) = line.split_once("}").unwrap();
+            let workflow = Workflow {
+                instructions: line
+                    .split(",")
+                    .map(|s| s.parse::<Instruction>().unwrap())
+                    .collect::<Vec<_>>(),
             };
-            if matches {
-                current = &rule.target;
-                break;
+            Ok(NamedWorkflow {
+                name: workflow_name.to_string(),
+                workflow,
+            })
+        }
+    }
+
+    #[derive(Debug)]
+    struct Part {
+        x: usize,
+        m: usize,
+        a: usize,
+        s: usize,
+    }
+
+    impl Part {
+        fn count(&self) -> usize {
+            self.x + self.m + self.a + self.s
+        }
+        fn get_parameter(&self, parameter: &Parameter) -> usize {
+            match parameter {
+                Parameter::X => self.x,
+                Parameter::M => self.m,
+                Parameter::A => self.a,
+                Parameter::S => self.s,
             }
         }
+    }
+
+    impl FromStr for Part {
+        type Err = &'static str;
+        /// Parse {x=787,m=2655,a=1222,s=2876}
+        fn from_str(line: &str) -> Result<Self, Self::Err> {
+            let (_, line) = line.split_once("{").unwrap();
+            let (line, _) = line.split_once("}").unwrap();
+            let mut x = None;
+            let mut m = None;
+            let mut a = None;
+            let mut s = None;
+            line.split(",").for_each(|sub| {
+                let (symbol, value) = sub.split_once("=").unwrap();
+                let value = value.parse::<usize>().unwrap();
+                match symbol {
+                    "x" => {
+                        x = Some(value);
+                    }
+                    "m" => {
+                        m = Some(value);
+                    }
+                    "a" => {
+                        a = Some(value);
+                    }
+                    "s" => {
+                        s = Some(value);
+                    }
+                    _ => panic!(),
+                };
+            });
+            assert!(x.is_some());
+            assert!(m.is_some());
+            assert!(a.is_some());
+            assert!(s.is_some());
+            let x = x.unwrap();
+            let m = m.unwrap();
+            let a = a.unwrap();
+            let s = s.unwrap();
+            Ok(Part { x, m, a, s })
+        }
+    }
+
+    #[derive(Debug)]
+    struct System {
+        workflows: HashMap<String, Workflow>,
+        parts: Vec<Part>,
+    }
+
+    impl System {
+        fn run(&self) -> usize {
+            let mut count = 0;
+            self.parts.iter().for_each(|part| {
+                let mut location = "in";
+                loop {
+                    location = self.workflows[location].run(part);
+                    match location {
+                        "R" => {
+                            break;
+                        }
+                        "A" => {
+                            count += part.count();
+                            break;
+                        }
+                        _ => (),
+                    };
+                }
+            });
+            count
+        }
+    }
+
+    impl FromStr for System {
+        type Err = &'static str;
+        /// Parse px{a<2006:qkq,m>2090:A,rfg} and {x=787,m=2655,a=1222,s=2876}
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let workflows = s
+                .lines()
+                .filter(|line| line.len() > 0 && !line.starts_with("{"))
+                .map(|line| {
+                    let named_workflow = line.parse::<NamedWorkflow>().unwrap();
+                    (named_workflow.name, named_workflow.workflow)
+                })
+                .collect::<HashMap<String, Workflow>>();
+            let parts = s
+                .lines()
+                .filter(|line| line.len() > 0 && line.starts_with("{"))
+                .map(|line| line.parse::<Part>().unwrap())
+                .collect::<Vec<_>>();
+            Ok(System { workflows, parts })
+        }
+    }
+
+    pub fn run(input: &str) -> usize {
+        input.parse::<System>().unwrap().run()
     }
 }
 
-type Range = [(u64, u64); 4];
+mod b {
+    use rayon::prelude::*;
 
-fn count_accepted(mut range: Range, current: &str, workflows: &HashMap<String, Workflow>) -> u64 {
-    if current == "A" {
-        return range
-            .iter()
-            .map(|(lo, hi)| if lo <= hi { hi - lo + 1 } else { 0 })
-            .product();
+    use std::{
+        collections::{BTreeSet, HashMap},
+        str::FromStr,
+    };
+
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+    enum Parameter {
+        X,
+        M,
+        A,
+        S,
     }
-    if current == "R" {
-        return 0;
-    }
 
-    let wf = &workflows[current];
-    let mut total = 0;
-
-    for rule in &wf.rules {
-        match &rule.cond {
-            None => {
-                total += count_accepted(range, &rule.target, workflows);
-                break;
-            }
-            Some(Condition::Lt(idx, val)) => {
-                let (lo, hi) = range[*idx];
-                if lo < *val {
-                    let mut accepted_range = range;
-                    accepted_range[*idx] = (lo, hi.min(*val - 1));
-                    total += count_accepted(accepted_range, &rule.target, workflows);
-                }
-                if hi >= *val {
-                    range[*idx] = (lo.max(*val), hi);
-                } else {
-                    break;
-                }
-            }
-            Some(Condition::Gt(idx, val)) => {
-                let (lo, hi) = range[*idx];
-                if hi > *val {
-                    let mut accepted_range = range;
-                    accepted_range[*idx] = (lo.max(*val + 1), hi);
-                    total += count_accepted(accepted_range, &rule.target, workflows);
-                }
-                if lo <= *val {
-                    range[*idx] = (lo, hi.min(*val));
-                } else {
-                    break;
-                }
+    impl FromStr for Parameter {
+        type Err = &'static str;
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            match s {
+                "x" => Ok(Parameter::X),
+                "m" => Ok(Parameter::M),
+                "a" => Ok(Parameter::A),
+                "s" => Ok(Parameter::S),
+                _ => Err("unknown parameter"),
             }
         }
     }
 
-    total
+    #[derive(Debug)]
+    enum Instruction {
+        LessThan((Parameter, usize, String)),
+        GreaterThan((Parameter, usize, String)),
+        Goto(String),
+    }
+    impl FromStr for Instruction {
+        type Err = &'static str;
+        /// Parse a<2006:qkq, m>2090:A, rfg
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            if s.contains(">") {
+                let (parameter, s) = s.split_once(">").unwrap();
+                let (value, destination) = s.split_once(":").unwrap();
+                let value = value.parse::<usize>().unwrap();
+                let parameter = parameter.parse::<Parameter>().unwrap();
+                return Ok(Instruction::GreaterThan((
+                    parameter,
+                    value,
+                    destination.to_string(),
+                )));
+            }
+            if s.contains("<") {
+                let (parameter, s) = s.split_once("<").unwrap();
+                let (value, destination) = s.split_once(":").unwrap();
+                let value = value.parse::<usize>().unwrap();
+                let parameter = parameter.parse::<Parameter>().unwrap();
+                return Ok(Instruction::LessThan((
+                    parameter,
+                    value,
+                    destination.to_string(),
+                )));
+            }
+            Ok(Instruction::Goto(s.to_string()))
+        }
+    }
+
+    #[derive(Debug)]
+    struct Workflow {
+        instructions: Vec<Instruction>,
+    }
+
+    impl Workflow {
+        fn run(&self, part: &Part) -> &str {
+            for x in &self.instructions {
+                match x {
+                    Instruction::Goto(destination) => {
+                        return &destination;
+                    }
+                    Instruction::LessThan((parameter, value, destination)) => {
+                        let parameter = part.get_parameter(parameter);
+                        if parameter < *value {
+                            return &destination;
+                        }
+                    }
+                    Instruction::GreaterThan((parameter, value, destination)) => {
+                        let parameter = part.get_parameter(parameter);
+                        if parameter > *value {
+                            return &destination;
+                        }
+                    }
+                }
+            }
+            panic!()
+        }
+        /// Find points where the outcome changes in the parameter space
+        ///
+        /// GreaterThan creates the break at value + 1
+        /// a > 2
+        /// 0 1 2 3 4
+        ///       | |
+        ///
+        /// LessThan creates the break at value
+        /// a < 2
+        /// 0 1 2 3 4
+        /// | |
+        fn get_breaks(&self, parameter: &Parameter) -> Vec<usize> {
+            let mut ret = Vec::new();
+            for x in &self.instructions {
+                match x {
+                    Instruction::LessThan((param, value, _)) => {
+                        if *param != *parameter {
+                            continue;
+                        }
+                        ret.push(*value);
+                    }
+                    Instruction::GreaterThan((param, value, _)) => {
+                        if *param != *parameter {
+                            continue;
+                        }
+                        ret.push(*value + 1);
+                    }
+                    Instruction::Goto(_) => (),
+                }
+            }
+            ret
+        }
+    }
+
+    #[derive(Debug)]
+    struct NamedWorkflow {
+        name: String,
+        workflow: Workflow,
+    }
+
+    impl FromStr for NamedWorkflow {
+        type Err = &'static str;
+        fn from_str(line: &str) -> Result<Self, Self::Err> {
+            let (workflow_name, line) = line.split_once("{").unwrap();
+            let (line, _) = line.split_once("}").unwrap();
+            let workflow = Workflow {
+                instructions: line
+                    .split(",")
+                    .map(|s| s.parse::<Instruction>().unwrap())
+                    .collect::<Vec<_>>(),
+            };
+            Ok(NamedWorkflow {
+                name: workflow_name.to_string(),
+                workflow,
+            })
+        }
+    }
+
+    #[derive(Debug)]
+    struct Part {
+        x: usize,
+        m: usize,
+        a: usize,
+        s: usize,
+    }
+
+    impl Part {
+        fn new(x: usize, m: usize, a: usize, s: usize) -> Part {
+            Part { x, m, a, s }
+        }
+        fn get_parameter(&self, parameter: &Parameter) -> usize {
+            match parameter {
+                Parameter::X => self.x,
+                Parameter::M => self.m,
+                Parameter::A => self.a,
+                Parameter::S => self.s,
+            }
+        }
+    }
+
+    impl FromStr for Part {
+        type Err = &'static str;
+        /// Parse {x=787,m=2655,a=1222,s=2876}
+        fn from_str(line: &str) -> Result<Self, Self::Err> {
+            let (_, line) = line.split_once("{").unwrap();
+            let (line, _) = line.split_once("}").unwrap();
+            let mut x = None;
+            let mut m = None;
+            let mut a = None;
+            let mut s = None;
+            line.split(",").for_each(|sub| {
+                let (symbol, value) = sub.split_once("=").unwrap();
+                let value = value.parse::<usize>().unwrap();
+                match symbol {
+                    "x" => {
+                        x = Some(value);
+                    }
+                    "m" => {
+                        m = Some(value);
+                    }
+                    "a" => {
+                        a = Some(value);
+                    }
+                    "s" => {
+                        s = Some(value);
+                    }
+                    _ => panic!(),
+                };
+            });
+            assert!(x.is_some());
+            assert!(m.is_some());
+            assert!(a.is_some());
+            assert!(s.is_some());
+            let x = x.unwrap();
+            let m = m.unwrap();
+            let a = a.unwrap();
+            let s = s.unwrap();
+            Ok(Part { x, m, a, s })
+        }
+    }
+
+    #[derive(Debug)]
+    struct System {
+        workflows: HashMap<String, Workflow>,
+    }
+
+    impl System {
+        fn part_accepted(&self, part: &Part) -> bool {
+            let mut location = "in";
+            loop {
+                location = self.workflows[location].run(part);
+                match location {
+                    "R" => {
+                        return false;
+                    }
+                    "A" => {
+                        return true;
+                    }
+                    _ => (),
+                };
+            }
+        }
+
+        fn run(&self) -> usize {
+            let x_breaks = self.get_breaks(&Parameter::X);
+            let m_breaks = self.get_breaks(&Parameter::M);
+            let a_breaks = self.get_breaks(&Parameter::A);
+            let s_breaks = self.get_breaks(&Parameter::S);
+            x_breaks
+                .windows(2)
+                .collect::<Vec<_>>()
+                .into_par_iter()
+                .map(|w| self.run_x_win(w, &m_breaks, &a_breaks, &s_breaks))
+                .sum()
+        }
+
+        fn run_x_win(
+            &self,
+            x_win: &[usize],
+            m_breaks: &Vec<usize>,
+            a_breaks: &Vec<usize>,
+            s_breaks: &Vec<usize>,
+        ) -> usize {
+            let mut count = 0;
+            for m_win in m_breaks.windows(2) {
+                for a_win in a_breaks.windows(2) {
+                    for s_win in s_breaks.windows(2) {
+                        if self.part_accepted(&Part::new(x_win[0], m_win[0], a_win[0], s_win[0])) {
+                            count += (x_win[1] - x_win[0])
+                                * (m_win[1] - m_win[0])
+                                * (a_win[1] - a_win[0])
+                                * (s_win[1] - s_win[0]);
+                        }
+                    }
+                }
+            }
+            count
+        }
+
+        /// Get values in parameter space where things change
+        /// Returned vec will be sorted and have endpoints
+        fn get_breaks(&self, parameter: &Parameter) -> Vec<usize> {
+            let ret = self
+                .workflows
+                .iter()
+                .map(|(_, x)| x.get_breaks(parameter))
+                .collect::<Vec<_>>();
+            let ret = ret.concat();
+            let mut ret = ret.into_iter().collect::<BTreeSet<_>>();
+            ret.insert(1);
+            ret.insert(4001);
+            let mut ret = ret.into_iter().collect::<Vec<_>>();
+            ret.sort();
+            ret
+        }
+    }
+
+    impl FromStr for System {
+        type Err = &'static str;
+        /// Parse px{a<2006:qkq,m>2090:A,rfg} and {x=787,m=2655,a=1222,s=2876}
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let workflows = s
+                .lines()
+                .filter(|line| line.len() > 0 && !line.starts_with("{"))
+                .map(|line| {
+                    let named_workflow = line.parse::<NamedWorkflow>().unwrap();
+                    (named_workflow.name, named_workflow.workflow)
+                })
+                .collect::<HashMap<String, Workflow>>();
+            Ok(System { workflows })
+        }
+    }
+
+    pub fn run(input: &str) -> usize {
+        input.parse::<System>().unwrap().run()
+    }
 }
 
 impl AocSolution for Day19 {
     fn part1(&self, input: &str) -> String {
-        let (wf_part, parts_part) = input.split_once("\n\n").unwrap();
-        let workflows = parse_workflows(wf_part);
-        let parts: Vec<[u64; 4]> = parts_part
-            .lines()
-            .filter(|l| !l.trim().is_empty())
-            .map(parse_part)
-            .collect();
-
-        let sum: u64 = parts
-            .into_iter()
-            .filter(|p| is_accepted(p, &workflows))
-            .map(|p| p.iter().sum::<u64>())
-            .sum();
-
-        sum.to_string()
+        a::run(input).to_string()
     }
 
     fn part2(&self, input: &str) -> String {
-        let wf_part = if let Some((wf_part, _)) = input.split_once("\n\n") {
-            wf_part
-        } else {
-            input
-        };
-        let workflows = parse_workflows(wf_part);
-        let initial_range: Range = [(1, 4000); 4];
-
-        count_accepted(initial_range, "in", &workflows).to_string()
+        b::run(input).to_string()
     }
 }
 
@@ -193,7 +559,7 @@ impl AocSolution for Day19 {
 mod tests {
     use super::*;
 
-    const EXAMPLE: &str = r"px{a<2006:qkq,m>2090:A,rfg}
+    const EXAMPLE: &str = r#"px{a<2006:qkq,m>2090:A,rfg}
 pv{a>1716:R,A}
 lnx{m>1548:A,A}
 rfg{s<537:gd,x>2440:R,A}
@@ -209,7 +575,7 @@ hdj{m>838:A,pv}
 {x=1679,m=44,a=2067,s=496}
 {x=2036,m=264,a=79,s=2244}
 {x=2461,m=1339,a=466,s=291}
-{x=2127,m=1623,a=2188,s=1013}";
+{x=2127,m=1623,a=2188,s=1013}"#;
 
     #[test]
     fn test_part1_example() {
@@ -228,6 +594,7 @@ hdj{m>838:A,pv}
     }
 
     #[test]
+    #[ignore = "slow in aoc23 (multi-minute rayon grid search)"]
     fn test_part2_full() {
         let input = crate::get_input_for_day(2023, 19).expect("Failed to get input");
         assert_eq!(Day19.part2(&input), "134343280273968");

@@ -1,6 +1,6 @@
 use crate::AocSolution;
 use std::{
-    collections::{hash_map::Entry, HashMap, VecDeque},
+    collections::{btree_map::Entry, BTreeMap, BTreeSet, VecDeque},
     str::FromStr,
 };
 
@@ -29,8 +29,8 @@ impl Secret {
         self.prune();
     }
 
-    fn make_sequence(&mut self, steps: usize) -> HashMap<[i8; 4], i8> {
-        let mut out = HashMap::new();
+    fn make_sequence(&mut self, steps: usize) -> BTreeMap<[i8; 4], i8> {
+        let mut out = BTreeMap::new();
         let mut prev = (self.value % 10) as i8;
         let mut deltas = VecDeque::new();
         for _ in 0..steps {
@@ -44,12 +44,11 @@ impl Secret {
             if deltas.len() < 4 {
                 continue;
             }
-            let key = [deltas[0], deltas[1], deltas[2], deltas[3]];
-            match out.entry(key) {
+            match out.entry([deltas[0], deltas[1], deltas[2], deltas[3]]) {
                 Entry::Vacant(vacant_entry) => {
                     vacant_entry.insert(current);
                 }
-                Entry::Occupied(_) => (),
+                Entry::Occupied(_occupied_entry) => (),
             }
         }
         out
@@ -87,14 +86,31 @@ impl Puzzle {
     }
 
     fn process_part2(&mut self, steps: usize) -> usize {
-        let mut total_bananas: HashMap<[i8; 4], usize> = HashMap::new();
-        for secret in &mut self.secrets {
-            let seq = secret.make_sequence(steps);
-            for (key, val) in seq {
-                *total_bananas.entry(key).or_default() += val as usize;
+        let sequences: Vec<_> = self
+            .secrets
+            .iter_mut()
+            .map(|s| s.make_sequence(steps))
+            .collect();
+        let mut keys = BTreeSet::new();
+        for seq in &sequences {
+            for key in seq.keys() {
+                keys.insert(key);
             }
         }
-        total_bananas.values().copied().max().unwrap_or(0)
+        let mut best_sum = 0;
+        let mut best_key = None;
+        for key in &keys {
+            let sum = sequences
+                .iter()
+                .map(|seq| *seq.get(*key).unwrap_or(&0) as usize)
+                .sum::<usize>();
+            if sum > best_sum {
+                best_sum = sum;
+                best_key = Some(key);
+            }
+        }
+        let _ = best_key;
+        best_sum
     }
 }
 
